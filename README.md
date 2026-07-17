@@ -40,6 +40,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - **Evidence-gated:** acceptance criteria and current read-back state control lifecycle transitions.
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
 - **MCP-only:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL.
+- **Host-portable:** ships only standard skill instructions and references, with no vendor-specific agent metadata.
 - **Repository-agnostic:** no hard-coded owner, project number, field ID, option ID, label, language, or status vocabulary.
 - **Recoverable:** partial failures trigger a fresh read and bounded recovery, never blind replay.
 - **Honest about limits:** missing tools, permissions, or authority become explicit stop conditions.
@@ -62,7 +63,6 @@ This is the lifecycle control and memory layer, not an autonomous scheduler or c
 | `skills/github-project-board/SKILL.md` | Core loop, lifecycle rules, and safety contract |
 | `skills/github-project-board/references/github-mcp-tools.md` | Official GitHub MCP tool map and payload patterns |
 | `skills/github-project-board/references/work-item-format.md` | Portable issue, blocker, note, and completion formats |
-| `skills/github-project-board/agents/openai.yaml` | Skill metadata and GitHub MCP dependency |
 
 ## Prerequisites
 
