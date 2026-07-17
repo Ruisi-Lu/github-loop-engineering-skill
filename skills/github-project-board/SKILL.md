@@ -58,6 +58,17 @@ Inspect the available GitHub MCP tools and their schemas. Board management norma
 - `labels` when repository labels must be listed or created;
 - `context`, `repos`, and `pull_requests` when identity, repository guidance, or PR linkage is relevant.
 
+If no GitHub MCP server is connected, enter the bootstrap gate:
+
+1. Detect the current MCP host and its supported installer, connector manager, or configuration mechanism.
+2. Install or connect only the official `github/github-mcp-server`; prefer its official remote service when the host supports it, otherwise follow its official container or binary instructions.
+3. Obtain any host-required approval before downloading software, changing user/global configuration, or starting authentication.
+4. Keep OAuth and PAT credentials in the host's secret/input store or environment. Never place them in the repository, skill, command transcript, or chat.
+5. Enable the required toolsets, reload tool discovery, and verify identity plus the requested read/write capabilities.
+6. Resume this workflow at Discover using fresh GitHub state.
+
+Do not treat cloning the server repository as installation unless the host is also configured to launch the built server. If the environment cannot install or connect MCP servers, stop with the exact host-specific action or authentication step the user must complete.
+
 The official server's default toolsets may omit `projects`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client.
 
 Before the first write:

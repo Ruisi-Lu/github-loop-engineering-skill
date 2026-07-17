@@ -2,6 +2,29 @@
 
 Use this reference with the official [GitHub MCP Server](https://github.com/github/github-mcp-server). Tool names and schemas can evolve, and MCP hosts can add a namespace prefix. Inspect the connected schema before calling a tool; the live schema wins over these examples.
 
+## Contents
+
+- [Bootstrap when the server is absent](#bootstrap-when-the-server-is-absent)
+- [Required toolsets and access](#required-toolsets-and-access)
+- [Canonical operations](#canonical-operations)
+- [Payload patterns](#payload-patterns)
+- [Capability gaps](#capability-gaps)
+
+## Bootstrap when the server is absent
+
+Let the agent install or connect the dependency when the host permits it:
+
+1. Identify the MCP host before editing configuration; formats and install surfaces differ.
+2. Use only the official `github/github-mcp-server` distribution.
+3. Prefer the official remote server when supported. Otherwise use the project's official container or binary setup for the detected host.
+4. Request host-required approval before downloads, global/user configuration changes, or interactive authentication.
+5. Put credentials in the host's protected input/secret store or environment. Never persist a token in the repository or skill.
+6. Enable the toolsets below, reload the host's tool discovery, and inspect the resulting schemas.
+7. Verify `get_me`, an issue read, a Project read, and every write tool required by the original request.
+8. Resume the original task from a fresh Discover pass.
+
+A source clone alone is not a configured MCP dependency. The host must connect to the remote endpoint or launch the local server. If the agent cannot perform that host-level step, return the smallest exact action the user must complete and stop without substituting another GitHub client.
+
 ## Required toolsets and access
 
 The official server's default set includes issue tools but can omit project tools. Enable the relevant toolsets for the workflow:

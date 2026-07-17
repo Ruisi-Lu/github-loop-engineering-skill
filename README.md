@@ -64,9 +64,22 @@ This is the lifecycle control and memory layer, not an autonomous scheduler or c
 | `skills/github-project-board/references/github-mcp-tools.md` | Official GitHub MCP tool map and payload patterns |
 | `skills/github-project-board/references/work-item-format.md` | Portable issue, blocker, note, and completion formats |
 
-## Prerequisites
+## Bootstrap the GitHub MCP dependency
 
-Connect the official GitHub MCP Server to your agent host with access to the target repository and GitHub Project.
+This skill has one runtime dependency: the official [github/github-mcp-server](https://github.com/github/github-mcp-server).
+
+If it is not connected, ask the agent to bootstrap it:
+
+```text
+Install or connect the official github/github-mcp-server for this MCP host.
+Use the host's supported installation method, keep credentials out of files
+and chat, enable the toolsets required by $github-project-board, reload the
+tools, verify the connection, and then resume the original request.
+```
+
+The agent should perform the setup itself when the host exposes an approved installer, connector manager, or shell workflow. Installation is host-specific: prefer the official remote server when supported; otherwise use the official container or binary instructions. Do not assume that cloning the source repository configures an MCP host.
+
+Before downloading software, changing user/global host configuration, or starting an authentication flow, the agent must obtain any approval required by the host. Store OAuth or PAT credentials through the host's secret/input mechanism or environment—not in the repository, skill, command transcript, or chat.
 
 Enable at least the `issues` and `projects` toolsets. `context`, `repos`, `labels`, and `pull_requests` are recommended for the full loop:
 
@@ -74,7 +87,9 @@ Enable at least the `issues` and `projects` toolsets. `context`, `repos`, `label
 context,repos,issues,labels,projects,pull_requests
 ```
 
-The server's default toolsets can omit `projects`, so board operations require enabling it explicitly. Project writes also require project-write authorization. Follow the official server's [configuration guide](https://github.com/github/github-mcp-server/blob/main/docs/server-configuration.md) for your MCP host; do not commit access tokens.
+The server's default toolsets can omit `projects`, so board operations require enabling it explicitly. Project writes also require project-write authorization. Follow the official server's [configuration guide](https://github.com/github/github-mcp-server/blob/main/docs/server-configuration.md) for the detected MCP host.
+
+After setup, verify that identity, issue reads, Project reads, and the requested write tools are actually available. Only then resume the skill at Discover.
 
 ## Install
 
