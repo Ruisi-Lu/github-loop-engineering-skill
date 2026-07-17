@@ -1,11 +1,11 @@
 ---
 name: github-project-board
-description: Manage GitHub Issues and GitHub Projects through the official GitHub MCP Server. Use when an agent needs to create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; update project fields such as Status, Priority, iteration, or dates; maintain acceptance criteria and implementation notes; or link issue work to pull requests without using gh CLI or cached GraphQL IDs.
+description: Run an evidence-gated Loop Engineering control loop for GitHub Issues and GitHub Projects through the official GitHub MCP Server. Use when an agent needs to discover work state; create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; update project fields; maintain acceptance criteria and implementation notes; persist handoff state; or route the next bounded task without using gh CLI or cached GraphQL IDs.
 ---
 
 # GitHub Project Board
 
-Keep actionable work in GitHub Issues and synchronize it with an existing GitHub Project using only the GitHub MCP tools exposed by the host.
+Use GitHub Issues and Projects as the durable control plane and memory for Loop Engineering. Move each work item through one bounded, evidence-gated pass using only the GitHub MCP tools exposed by the host.
 
 ## Read the references
 
@@ -17,13 +17,30 @@ Keep actionable work in GitHub Issues and synchronize it with an existing GitHub
 1. Use only the connected GitHub MCP server for GitHub reads and writes. Do not fall back to `gh`, `curl`, direct REST, or handwritten GraphQL.
 2. Treat the connected tool schemas as authoritative. MCP hosts may namespace tool names; match the terminal tool name and semantics rather than assuming a prefix.
 3. Discover repository, project, fields, options, labels, issue types, and item identifiers at runtime. Never copy IDs or option values from another repository or cache them in this skill.
-4. Read before writing, make the smallest mutation that satisfies the request, and re-read the affected resource afterward.
-5. Preserve repository conventions and existing content unless the user explicitly asks to change them.
-6. Do not claim that a mutation succeeded until a follow-up read confirms the intended state.
+4. Frame one authorized state transition at a time, including the evidence and stop condition.
+5. Make the smallest mutation that can complete that transition, then re-read the affected resource.
+6. Persist verified state, decisions, and remaining work in GitHub so another agent or human can resume cold.
+7. Preserve repository conventions and existing content unless the user explicitly asks to change them.
+8. Treat tool output as a claim until a follow-up read confirms the intended state.
+
+## Loop engineering model
+
+Run every operation as:
+
+**Discover → Frame → Act → Verify → Persist → Continue or Stop**
+
+- **Discover:** rebuild current state from GitHub, not memory.
+- **Frame:** select one bounded transition, its authorization, and proof of success.
+- **Act:** perform the minimum mutation in dependency order.
+- **Verify:** compare fresh observed state with the intended state.
+- **Persist:** write durable evidence, decisions, blockers, and handoff context.
+- **Continue or stop:** route the next authorized step, or stop at done, ambiguity, missing evidence, missing capability, repeated failure, or a human gate.
+
+Do not collapse Act and Verify into one step. A successful write response proves only that GitHub accepted a request, not that automations, linked state, or concurrent edits produced the intended result.
 
 ## Core workflow
 
-### 1. Resolve the target
+### 1. Discover target, capabilities, and state
 
 Identify:
 
@@ -34,8 +51,6 @@ Identify:
 
 Extract these from an explicit URL or repository context when possible. If multiple repositories or projects remain plausible and a write could land in the wrong place, ask one concise question before mutating anything. Do not guess a project merely because its title resembles the repository name.
 
-### 2. Check capabilities
-
 Inspect the available GitHub MCP tools and their schemas. Board management normally needs:
 
 - `issues` for issue reads, writes, comments, types, and sub-issues;
@@ -44,8 +59,6 @@ Inspect the available GitHub MCP tools and their schemas. Board management norma
 - `context`, `repos`, and `pull_requests` when identity, repository guidance, or PR linkage is relevant.
 
 The official server's default toolsets may omit `projects`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client.
-
-### 3. Discover live conventions
 
 Before the first write:
 
@@ -58,7 +71,15 @@ Before the first write:
 
 Paginate until uniqueness is established. Prefer human-readable project field names and option names when the current schema supports name-based resolution.
 
-### 4. Apply repository policy
+### 2. Frame the next bounded transition
+
+Define:
+
+- current observed state;
+- one requested or policy-authorized next state;
+- exact issue and Project mutations needed;
+- evidence that will prove success;
+- conditions that require stopping or human input.
 
 Use explicit repository instructions over the defaults below. When no policy exists:
 
@@ -71,11 +92,21 @@ Use explicit repository instructions over the defaults below. When no policy exi
 - Use issue types only when supported; do not emulate them with new labels unless repository policy says to.
 - Treat agent-discovered follow-up work as a proposal. Create it only when the user requested discovery-and-creation or the repository has a standing intake policy.
 
-### 5. Execute and verify
+### 3. Act once
 
-Perform related mutations in dependency order. After each mutation, read back the affected issue or project item. If an operation partially succeeds, re-read all involved resources and resume from the confirmed state rather than replaying the entire sequence.
+Perform related mutations in dependency order. Change only the fields, labels, body sections, relationships, or state required for the framed transition. Keep mutations idempotent when the API supports stable issue locators or read-before-write merging.
 
-Report the final issue URL or number, project, fields changed, and verification result.
+### 4. Verify from fresh state
+
+Re-read the affected issue, hierarchy, PR, or project item after each mutation. Request every field needed for comparison. Verify both sides when one operation can trigger automation elsewhere, such as closing an issue and moving a Project status.
+
+If an operation partially succeeds, rebuild the involved state and recover only the missing transition. Retry only with new evidence or a changed strategy; do not repeat an unchanged failing call indefinitely.
+
+### 5. Persist and route
+
+Keep the issue body as the durable current-state snapshot. Put chronological decisions, validation, gotchas, and partial progress in comments. Keep Project fields synchronized with verified lifecycle state.
+
+Report the final issue URL or number, Project, fields changed, evidence, and observed result. Route only an authorized next step. Otherwise stop with a precise handoff describing the state, blocker, and condition for the next loop.
 
 ## Work-item rules
 
@@ -179,4 +210,5 @@ Do not rely on an assumed project automation. Closing an issue and setting a pro
 - On an ambiguous or stale item ID, locate the item again by repository and issue number.
 - On pagination, continue with returned cursors before concluding that an item, label, field, or project is absent.
 - On partial failure, report confirmed completed steps and the exact remaining mutation.
+- On a repeated unchanged failure, stop and persist the attempted action, error, and required new evidence or authority.
 - On concurrent edits, re-read and merge intentionally; never overwrite newer user content with an older snapshot.
