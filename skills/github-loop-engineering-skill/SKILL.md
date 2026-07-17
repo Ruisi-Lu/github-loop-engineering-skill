@@ -1,9 +1,9 @@
 ---
-name: github-project-board
+name: github-loop-engineering-skill
 description: Run an evidence-gated Loop Engineering control loop for GitHub Issues and GitHub Projects through the official GitHub MCP Server. Use when an agent needs to discover work state; create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; update project fields; maintain acceptance criteria and implementation notes; persist handoff state; or route the next bounded task without using gh CLI or cached GraphQL IDs.
 ---
 
-# GitHub Project Board
+# GitHub Loop Engineering
 
 Use GitHub Issues and Projects as the durable control plane and memory for Loop Engineering. Move each work item through one bounded, evidence-gated pass using only the GitHub MCP tools exposed by the host.
 

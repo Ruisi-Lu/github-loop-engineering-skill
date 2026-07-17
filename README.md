@@ -1,4 +1,4 @@
-# GitHub Project Board Skill
+# GitHub Loop Engineering Skill
 
 > The GitHub-native control plane for Loop Engineering.
 
@@ -60,9 +60,9 @@ This is the lifecycle control and memory layer, not an autonomous scheduler or c
 
 | Path | Purpose |
 |:--|:--|
-| `skills/github-project-board/SKILL.md` | Core loop, lifecycle rules, and safety contract |
-| `skills/github-project-board/references/github-mcp-tools.md` | Official GitHub MCP tool map and payload patterns |
-| `skills/github-project-board/references/work-item-format.md` | Portable issue, blocker, note, and completion formats |
+| `skills/github-loop-engineering-skill/SKILL.md` | Core loop, lifecycle rules, and safety contract |
+| `skills/github-loop-engineering-skill/references/github-mcp-tools.md` | Official GitHub MCP tool map and payload patterns |
+| `skills/github-loop-engineering-skill/references/work-item-format.md` | Portable issue, blocker, note, and completion formats |
 
 ## Bootstrap the GitHub MCP dependency
 
@@ -73,7 +73,7 @@ If it is not connected, ask the agent to bootstrap it:
 ```text
 Install or connect the official github/github-mcp-server for this MCP host.
 Use the host's supported installation method, keep credentials out of files
-and chat, enable the toolsets required by $github-project-board, reload the
+and chat, enable the toolsets required by $github-loop-engineering-skill, reload the
 tools, verify the connection, and then resume the original request.
 ```
 
@@ -96,19 +96,19 @@ After setup, verify that identity, issue reads, Project reads, and the requested
 With an Agent Skills-compatible installer:
 
 ```bash
-npx skills add Ruisi-Lu/github-project-board-skill
+npx skills add Ruisi-Lu/github-loop-engineering-skill
 ```
 
 Or copy the skill directory into the location used by your agent:
 
 ```bash
-cp -R skills/github-project-board ~/.codex/skills/
+cp -R skills/github-loop-engineering-skill ~/.codex/skills/
 ```
 
 For a repository-local Claude Code installation:
 
 ```bash
-cp -R skills/github-project-board .claude/skills/
+cp -R skills/github-loop-engineering-skill .claude/skills/
 ```
 
 Restart or reload the agent host if it does not discover newly installed skills automatically.
@@ -118,14 +118,14 @@ Restart or reload the agent host if it does not discover newly installed skills 
 Run one bounded work loop:
 
 ```text
-Use $github-project-board to inspect issue #42 and its project item, choose the
+Use $github-loop-engineering-skill to inspect issue #42 and its project item, choose the
 next authorized transition, apply it, verify it, and persist the evidence.
 ```
 
 Create and route work:
 
 ```text
-Use $github-project-board to create an issue for the failing upload retries,
+Use $github-loop-engineering-skill to create an issue for the failing upload retries,
 add it to our engineering project, set the existing priority to High, and
 verify every resulting state.
 ```
@@ -133,7 +133,7 @@ verify every resulting state.
 Enforce a completion gate:
 
 ```text
-Use $github-project-board to close issue #42 only if every acceptance criterion
+Use $github-loop-engineering-skill to close issue #42 only if every acceptance criterion
 has current evidence, then synchronize and verify the project status.
 ```
 
