@@ -1,0 +1,9 @@
+interface:
+  display_name: "GitHub Project Board"
+  short_description: "Manage GitHub Projects safely through MCP"
+  default_prompt: "Use $github-project-board to triage this repository and keep its GitHub Project in sync."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "github"
+      description: "GitHub MCP server with Issues and Projects read/write access"
