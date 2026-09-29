@@ -1,0 +1,17 @@
+{
+  "name": "github-loop-engineering",
+  "description": "Claude Code marketplace for the GitHub Loop Engineering plugin.",
+  "owner": {
+    "name": "Ruisi Lu",
+    "url": "https://github.com/Ruisi-Lu"
+  },
+  "plugins": [
+    {
+      "name": "github-loop-engineering",
+      "source": "./",
+      "description": "Run evidence-gated work loops on GitHub Issues and Projects through the official GitHub MCP Server.",
+      "category": "productivity",
+      "tags": ["github", "project-management", "mcp", "loop-engineering"]
+    }
+  ]
+}

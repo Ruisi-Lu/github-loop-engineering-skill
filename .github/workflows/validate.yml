@@ -1,0 +1,37 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      # Installs the tools pinned in .prototools.
+      - uses: moonrepo/setup-toolchain@v0
+        with:
+          auto-install: true
+
+      # Provides the authoritative `claude plugin validate`; no authentication is required.
+      - name: Install Claude Code CLI
+        run: npm install --global @anthropic-ai/claude-code@2.1.284
+
+      - name: Install script dependencies
+        working-directory: scripts
+        run: bun install --frozen-lockfile
+
+      - name: Check repository
+        working-directory: scripts
+        run: bun run check

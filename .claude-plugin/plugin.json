@@ -1,0 +1,22 @@
+{
+  "name": "github-loop-engineering",
+  "displayName": "GitHub Loop Engineering",
+  "version": "1.0.0",
+  "description": "Evidence-gated Loop Engineering control loop that uses GitHub Issues and Projects as durable state, evidence, and handoff through the official GitHub MCP Server.",
+  "author": {
+    "name": "Ruisi Lu",
+    "url": "https://github.com/Ruisi-Lu"
+  },
+  "homepage": "https://github.com/Ruisi-Lu/github-loop-engineering-skill#readme",
+  "repository": "https://github.com/Ruisi-Lu/github-loop-engineering-skill",
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "github-issues",
+    "github-projects",
+    "mcp",
+    "loop-engineering",
+    "project-management",
+    "agent-skills"
+  ]
+}

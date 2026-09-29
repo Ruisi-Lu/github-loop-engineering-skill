@@ -40,7 +40,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - **Evidence-gated:** acceptance criteria and current read-back state control lifecycle transitions.
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
 - **MCP-only:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL.
-- **Host-portable:** ships only standard skill instructions and references, with no vendor-specific agent metadata.
+- **Host-portable:** the skill is standard Agent Skills content with no vendor-specific agent metadata. The Claude Code plugin is an optional wrapper that installs the same files unchanged.
 - **Repository-agnostic:** no hard-coded owner, project number, field ID, option ID, label, language, or status vocabulary.
 - **Recoverable:** partial failures trigger a fresh read and bounded recovery, never blind replay.
 - **Honest about limits:** missing tools, permissions, or authority become explicit stop conditions.
@@ -63,6 +63,10 @@ This is the lifecycle control and memory layer, not an autonomous scheduler or c
 | `skills/github-loop-engineering-skill/SKILL.md` | Core loop, lifecycle rules, and safety contract |
 | `skills/github-loop-engineering-skill/references/github-mcp-tools.md` | Official GitHub MCP tool map and payload patterns |
 | `skills/github-loop-engineering-skill/references/work-item-format.md` | Portable issue, blocker, note, and completion formats |
+| `.claude-plugin/plugin.json` | Claude Code plugin manifest and release version |
+| `.claude-plugin/marketplace.json` | Single-plugin Claude Code marketplace catalog |
+| `scripts/` | Bun and TypeScript repository checks (development only) |
+| `CHANGELOG.md` | Release history |
 
 ## Bootstrap the GitHub MCP dependency
 
@@ -73,8 +77,8 @@ If it is not connected, ask the agent to bootstrap it:
 ```text
 Install or connect the official github/github-mcp-server for this MCP host.
 Use the host's supported installation method, keep credentials out of files
-and chat, enable the toolsets required by $github-loop-engineering-skill, reload the
-tools, verify the connection, and then resume the original request.
+and chat, enable the toolsets required by the GitHub Loop Engineering skill, reload
+the tools, verify the connection, and then resume the original request.
 ```
 
 The agent should perform the setup itself when the host exposes an approved installer, connector manager, or shell workflow. Installation is host-specific: prefer the official remote server when supported; otherwise use the official container or binary instructions. Do not assume that cloning the source repository configures an MCP host.
@@ -87,11 +91,83 @@ Enable at least the `issues` and `projects` toolsets. `context`, `repos`, `label
 context,repos,issues,labels,projects,pull_requests
 ```
 
-The server's default toolsets can omit `projects`, so board operations require enabling it explicitly. Project writes also require project-write authorization. Follow the official server's [configuration guide](https://github.com/github/github-mcp-server/blob/main/docs/server-configuration.md) for the detected MCP host.
+The server's default toolsets (`context`, `issues`, `pull_requests`, `repos`, `users`) omit `projects` and `labels`, so you must enable them explicitly for board operations. The remote server takes toolsets from the `X-MCP-Toolsets` header. The local server reads the `--toolsets` flag or the `GITHUB_TOOLSETS` variable. Project writes also require project-write authorization. Follow the official server's [configuration guide](https://github.com/github/github-mcp-server/blob/main/docs/server-configuration.md) for the detected MCP host.
 
 After setup, verify that identity, issue reads, Project reads, and the requested write tools are actually available. Only then resume the skill at Discover.
 
+### Claude Code example
+
+The plugin doesn't bundle an MCP server. That keeps credentials out of the plugin and avoids a second GitHub server when one is already connected. To connect the official remote server for your user, export a GitHub token in your shell first. The shell expands it once, and Claude Code stores the result in your user configuration, not in any repository:
+
+```bash
+claude mcp add --transport http --scope user github https://api.githubcopilot.com/mcp/ \
+  --header "Authorization: Bearer $GITHUB_PAT" \
+  --header "X-MCP-Toolsets: context,repos,issues,labels,projects,pull_requests"
+```
+
+To share the setup with a team, commit a project `.mcp.json` in the target repository. Claude Code expands `${GITHUB_PAT}` from each member's environment when it loads the file, so the committed file holds no secret:
+
+```json
+{
+  "mcpServers": {
+    "github": {
+      "type": "http",
+      "url": "https://api.githubcopilot.com/mcp/",
+      "headers": {
+        "Authorization": "Bearer ${GITHUB_PAT}",
+        "X-MCP-Toolsets": "context,repos,issues,labels,projects,pull_requests"
+      }
+    }
+  }
+}
+```
+
+Run `/mcp` to confirm the connection, and approve the project server when Claude Code prompts.
+
 ## Install
+
+### Claude Code plugin
+
+This repository is also a Claude Code plugin marketplace. In a Claude Code session:
+
+```text
+/plugin marketplace add Ruisi-Lu/github-loop-engineering-skill
+/plugin install github-loop-engineering@github-loop-engineering
+```
+
+Or from your shell:
+
+```bash
+claude plugin marketplace add Ruisi-Lu/github-loop-engineering-skill
+claude plugin install github-loop-engineering@github-loop-engineering
+```
+
+Run `/reload-plugins` or start a new session to load it. The plugin pins its release version, so a new release reaches you only after the version changes. Third-party marketplaces don't auto-update by default. Enable auto-update in the `/plugin` **Marketplaces** tab, or update manually:
+
+```bash
+claude plugin marketplace update github-loop-engineering
+claude plugin update github-loop-engineering@github-loop-engineering
+```
+
+To enable the plugin for everyone who works in a repository, commit this to that repository's `.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "github-loop-engineering": {
+      "source": {
+        "source": "github",
+        "repo": "Ruisi-Lu/github-loop-engineering-skill"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "github-loop-engineering@github-loop-engineering": true
+  }
+}
+```
+
+### Other Agent Skills hosts
 
 With an Agent Skills-compatible installer:
 
@@ -105,36 +181,46 @@ Or copy the skill directory into the location used by your agent:
 cp -R skills/github-loop-engineering-skill ~/.codex/skills/
 ```
 
-For a repository-local Claude Code installation:
+For a standalone Claude Code skill without the plugin wrapper:
 
 ```bash
 cp -R skills/github-loop-engineering-skill .claude/skills/
 ```
 
+Install either the plugin or a standalone copy in Claude Code, not both. With both, the same skill loads twice under different names.
+
 Restart or reload the agent host if it does not discover newly installed skills automatically.
 
 ## Use
 
+The skill triggers automatically when a request matches its description. To invoke it explicitly:
+
+| Host | Invocation |
+|:--|:--|
+| Claude Code plugin | `/github-loop-engineering:github-loop-engineering-skill` |
+| Claude Code standalone skill | `/github-loop-engineering-skill` |
+| Codex | `$github-loop-engineering-skill` |
+
 Run one bounded work loop:
 
 ```text
-Use $github-loop-engineering-skill to inspect issue #42 and its project item, choose the
-next authorized transition, apply it, verify it, and persist the evidence.
+Use the GitHub Loop Engineering skill to inspect issue #42 and its project item,
+choose the next authorized transition, apply it, verify it, and persist the evidence.
 ```
 
 Create and route work:
 
 ```text
-Use $github-loop-engineering-skill to create an issue for the failing upload retries,
-add it to our engineering project, set the existing priority to High, and
-verify every resulting state.
+Use the GitHub Loop Engineering skill to create an issue for the failing upload
+retries, add it to our engineering project, set the existing priority to High,
+and verify every resulting state.
 ```
 
 Enforce a completion gate:
 
 ```text
-Use $github-loop-engineering-skill to close issue #42 only if every acceptance criterion
-has current evidence, then synchronize and verify the project status.
+Use the GitHub Loop Engineering skill to close issue #42 only if every acceptance
+criterion has current evidence, then synchronize and verify the project status.
 ```
 
 The skill follows repository instructions and existing project vocabulary. Ambiguous targets, insufficient evidence, missing capabilities, and new authority requirements stop the loop before an unsafe transition.
@@ -144,6 +230,28 @@ The skill follows repository instructions and existing project vocabulary. Ambig
 The skill targets the official GitHub MCP Server's documented tool surface. It never silently switches to a CLI or direct API. Native issue dependencies and arbitrary project configuration remain conditional on the tools exposed by the connected server.
 
 The skill completes one requested lifecycle operation or bounded recovery at a time. Scheduling, isolated worktrees, coding-agent execution, independent code evaluation, deployment, and unattended repetition belong to the surrounding Loop Engineering harness.
+
+The Claude Code plugin packages only the skill. It adds no hooks, agents, commands, or MCP servers, so installing it grants no new tool access.
+
+## Development
+
+The toolchain is pinned in `.prototools` and managed with [proto](https://moonrepo.dev/proto). The repository checks live in `scripts/` so the plugin root never pairs a `package.json` with a lockfile. Claude Code would otherwise install those development dependencies for every plugin user.
+
+```bash
+proto install
+cd scripts
+bun install --frozen-lockfile
+bun run check
+```
+
+`bun run check` type-checks the scripts. It then verifies that the marketplace entry matches `plugin.json`, that the latest `CHANGELOG.md` release matches the plugin version, that skill frontmatter is valid, and that relative Markdown links and anchors resolve. It finishes with `claude plugin validate --strict`, which is skipped with a warning locally when the Claude Code CLI is absent and required in CI.
+
+To release:
+
+1. Move the `Unreleased` changelog entries into a new version section.
+2. Set the same version in `.claude-plugin/plugin.json`. Leave `version` out of `marketplace.json`, because `plugin.json` is the single source of truth.
+3. Run `bun run check`, then commit.
+4. Run `claude plugin tag . --push` to create and push the `github-loop-engineering--v<version>` tag.
 
 ## License
 
