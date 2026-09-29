@@ -25,9 +25,18 @@ Let the agent install or connect the dependency when the host permits it:
 
 A source clone alone is not a configured MCP dependency. The host must connect to the remote endpoint or launch the local server. If the agent cannot perform that host-level step, return the smallest exact action the user must complete and stop without substituting another GitHub client.
 
+Select toolsets with the mechanism of the chosen distribution:
+
+| Distribution | Toolsets | Read-only switch |
+|:--|:--|:--|
+| Remote server (`https://api.githubcopilot.com/mcp/`) | `X-MCP-Toolsets` header with a comma-separated list | `X-MCP-Readonly` header |
+| Local container or binary | `--toolsets` flag or `GITHUB_TOOLSETS` environment variable | `--read-only` flag or `GITHUB_READ_ONLY` |
+
+The official server's configuration guide is authoritative when these mechanisms change.
+
 ## Required toolsets and access
 
-The official server's default set includes issue tools but can omit project tools. Enable the relevant toolsets for the workflow:
+The official server's default toolsets are `context`, `issues`, `pull_requests`, `repos`, and `users`. They omit `projects` and `labels`, so board operations fail until those toolsets are requested explicitly. Enable the relevant toolsets for the workflow:
 
 | Toolset | Use |
 |:--|:--|
@@ -47,11 +56,13 @@ If a needed tool is absent, tell the user which toolset or write capability is m
 | Goal | Tool | Method or important input |
 |:--|:--|:--|
 | Identify current user | `get_me` | no input |
-| Read an issue | `issue_read` | `get` |
+| Read an issue | `issue_read` | `get`; also returns hierarchy flags and `closed_by_pull_requests` |
 | Read comments | `issue_read` | `get_comments` |
 | Read hierarchy | `issue_read` | `get_sub_issues` or `get_parent` |
 | Read issue labels | `issue_read` | `get_labels` |
 | Create/update/close issue | `issue_write` | `create` or `update` |
+| Create a child under a parent | `issue_write` | `create` with `parent_issue_number` |
+| Set custom issue fields | `issue_write` | `issue_fields`, validated against `list_issue_fields` |
 | Add a timeline note | `add_issue_comment` | body and issue number |
 | Search for duplicates | `search_issues` | GitHub issue search query |
 | List issue types | `list_issue_types` | owner and optional repo |
@@ -64,10 +75,13 @@ If a needed tool is absent, tell the user which toolset or write capability is m
 | List project items | `projects_list` | `list_project_items` |
 | Read one project resource | `projects_get` | `get_project`, `get_project_field`, or `get_project_item` |
 | Add/update/delete project item | `projects_write` | `add_project_item`, `update_project_item`, or `delete_project_item` |
+| Set one field on many items | `projects_write` | `update_project_items`, up to 50 items per call |
 | Read a PR | `pull_request_read` | `get`, `get_comments`, `get_files`, or related method |
 | Update a PR | `update_pull_request` | PR number and changed fields |
 
-Use `projects_write` with `create_project` only when the user explicitly requests a new project. An empty project may still need field and workflow configuration that the MCP server cannot fully create.
+Pagination parameter names differ by tool. Issue and project list tools currently use `perPage`, and project lists return a cursor for `after`. Follow the connected schema instead of these examples.
+
+Use `projects_write` with `create_project` only when the user explicitly requests a new project. An empty project may still need field and workflow configuration that the MCP server cannot fully create. Use project views, iteration fields, and `create_project_status_update` only when the user or repository policy asks for them. They are project configuration or reporting, not ordinary work-item transitions.
 
 ## Payload patterns
 
@@ -80,7 +94,7 @@ The examples omit any host-specific namespace.
   "method": "list_projects",
   "owner": "octo-org",
   "owner_type": "org",
-  "per_page": 50
+  "perPage": 50
 }
 ```
 
@@ -92,7 +106,7 @@ After selecting a project by verified title and number:
   "owner": "octo-org",
   "owner_type": "org",
   "project_number": 7,
-  "per_page": 50
+  "perPage": 50
 }
 ```
 
@@ -160,6 +174,29 @@ This issue locator avoids carrying a stale project item ID. If the connected sch
 
 Set a supported field value to `null` only when the user requests clearing it.
 
+### Update one field on many items
+
+When the same field and value apply to several items, use one `update_project_items` call per batch of at most 50 items instead of looping over `update_project_item`:
+
+```json
+{
+  "method": "update_project_items",
+  "owner": "octo-org",
+  "owner_type": "org",
+  "project_number": 7,
+  "items": [
+    { "item_owner": "octo-org", "item_repo": "widgets", "issue_number": 42 },
+    { "item_owner": "octo-org", "item_repo": "widgets", "issue_number": 43 }
+  ],
+  "updated_field": {
+    "name": "Status",
+    "value": "Todo"
+  }
+}
+```
+
+Each entry uses exactly one locator form. The server documents option-name resolution for single-item updates, so if a batch rejects an option name, use the option ID from a fresh `list_project_fields` read. A batch can partially succeed. Read back every item before you report the batch done.
+
 ### Verify project values
 
 Call `projects_list` with `method: "list_project_items"` and request the relevant `field_names`, for example `["Status", "Priority"]`. Without `field_names` or `fields`, the server can return only titles.
@@ -177,7 +214,22 @@ Treat `labels` on an update as replacement-capable. Never send only the new labe
 
 ### Create and attach a sub-issue
 
-Create the child normally, then use the child's numeric issue `id` from the create or `issue_read` response:
+If the connected `issue_write` schema exposes `parent_issue_number`, create the child and attach it in one call:
+
+```json
+{
+  "method": "create",
+  "owner": "octo-org",
+  "repo": "widgets",
+  "title": "Emit retry metrics",
+  "body": "## Outcome\n...",
+  "parent_issue_number": 40
+}
+```
+
+Add `parent_owner` and `parent_repo` together only when the parent is in a different repository. The schema doesn't let `parent_issue_number` be combined with `issue_fields`. When both are needed, create the child with its fields first, then attach it as below.
+
+To attach an existing issue, use the child's numeric issue `id` from the create or `issue_read` response:
 
 ```json
 {
@@ -190,6 +242,8 @@ Create the child normally, then use the child's numeric issue `id` from the crea
 ```
 
 Here `issue_number` identifies the parent and `sub_issue_id` is the child's numeric database ID, not its issue number or GraphQL node ID. Use `replace_parent: true` only when intentionally moving a child from another parent.
+
+With either path, confirm the relationship with `issue_read` `get_sub_issues` on the parent or `get_parent` on the child.
 
 ### Update and close an issue
 
@@ -219,6 +273,10 @@ Close only after the completion ritual:
 ```
 
 Re-read both issue state and project status. Do not assume one automatically changed the other.
+
+To close a duplicate, use `state_reason: "duplicate"` with `duplicate_of` set to the canonical issue number. Use `not_planned` only for an explicit decision not to do the work.
+
+`issue_read` `get` returns `closed_by_pull_requests`. Use it as linkage evidence when a completion depends on a PR, not as proof that the PR was merged or validated.
 
 ### Add an implementation or completion note
 

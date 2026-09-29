@@ -69,7 +69,7 @@ If no GitHub MCP server is connected, enter the bootstrap gate:
 
 Do not treat cloning the server repository as installation unless the host is also configured to launch the built server. If the environment cannot install or connect MCP servers, stop with the exact host-specific action or authentication step the user must complete.
 
-The official server's default toolsets may omit `projects`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client.
+The official server's default toolsets omit `projects` and `labels`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client.
 
 Before the first write:
 
@@ -77,7 +77,7 @@ Before the first write:
 2. List matching projects and verify the selected project's title and number.
 3. List project fields and their current options.
 4. List existing repository labels.
-5. List issue types only when the repository supports them or a type is requested.
+5. List issue types and custom issue fields only when the repository supports them or the request needs them.
 6. Read the current issue, its labels, relevant comments, hierarchy, and project item when updating existing work.
 
 Paginate until uniqueness is established. Prefer human-readable project field names and option names when the current schema supports name-based resolution.
@@ -170,15 +170,16 @@ If the project auto-add workflow already attached the issue, treat an already-pr
 
 Starting work normally means setting the existing active-status option and adding an implementation note only when it provides durable context. Do not assign the authenticated user unless requested or required by repository policy.
 
+When one authorized transition sets the same field value on several items, such as moving a set of accepted children to the ready option, use the batch project update if the connected schema exposes it. Then verify every item. A batch can partially succeed.
+
 ### Split into sub-issues
 
 Use sub-issues when parts can be independently assigned, sequenced, or accepted. Keep small implementation steps as acceptance-criteria checkboxes.
 
-1. Create each child as a complete ordinary issue.
-2. Add each child to the project and initialize its fields.
-3. Obtain the child's numeric issue ID from the create/read response.
-4. Attach it with `sub_issue_write`.
-5. Re-read the parent's sub-issues and each child project item.
+1. Create each child as a complete ordinary issue. When the connected schema supports it, pass the parent on creation so creation and attachment happen in one call.
+2. Otherwise, obtain the child's numeric issue ID from the create/read response and attach it with `sub_issue_write`.
+3. Add each child to the project and initialize its fields.
+4. Re-read the parent's sub-issues and each child project item.
 
 Do not confuse issue number, database ID, node ID, and project item ID.
 
@@ -204,8 +205,8 @@ For PRs, use an auto-closing keyword such as `Closes owner/repo#N` only when mer
 
 ### Complete and close
 
-1. Re-read the issue, acceptance criteria, project fields, sub-issues, and relevant comments.
-2. Confirm every acceptance criterion with evidence. Record any explicit descoping.
+1. Re-read the issue, acceptance criteria, project fields, sub-issues, linked closing PRs, and relevant comments.
+2. Confirm every acceptance criterion with evidence. Record any explicit descoping. A linked PR is a pointer to evidence, not evidence itself.
 3. Update the issue body's durable state.
 4. Add a completion comment containing outcome, PR/commit links, validation, and authorized follow-ups.
 5. Close the issue with the appropriate state reason.
