@@ -1,16 +1,19 @@
 ---
 name: github-loop-engineering-skill
-description: Run an evidence-gated Loop Engineering control loop for GitHub Issues and GitHub Projects through the official GitHub MCP Server. Use when an agent needs to discover work state; create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; update project fields; maintain acceptance criteria and implementation notes; persist handoff state; or route the next bounded task without using gh CLI or cached GraphQL IDs.
+description: Run an evidence-gated Loop Engineering control loop for GitHub Issues and GitHub Projects through the official GitHub MCP Server, keeping every issue cold-startable for a new collaborator or a fresh agent session. Use when an agent needs to discover work state; create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; update project fields; maintain acceptance criteria and implementation notes; persist handoff state; initialize labels, issue templates, and a project board on first use; or route the next bounded task without using gh CLI or cached GraphQL IDs.
 ---
 
 # GitHub Loop Engineering
 
 Use GitHub Issues and Projects as the durable control plane and memory for Loop Engineering. Move each work item through one bounded, evidence-gated pass using only the GitHub MCP tools exposed by the host.
 
+The issue is the unit of handoff. Every issue must stay cold-startable: someone with no prior context, including a fresh agent session, can read it and act on it without asking anyone or reading chat history.
+
 ## Read the references
 
 - Read [references/github-mcp-tools.md](references/github-mcp-tools.md) before the first GitHub MCP operation in a session and whenever a required capability or payload is unclear.
-- Read [references/work-item-format.md](references/work-item-format.md) before creating an issue or substantially rewriting an issue body.
+- Read [references/work-item-format.md](references/work-item-format.md) before creating an issue or substantially rewriting an issue body. It defines the cold-start contract and check.
+- Read [references/initialization.md](references/initialization.md) when a repository's issues or board are used for the first time. The issue templates it installs live in [assets/issue-templates/](assets/issue-templates/).
 
 ## Operating contract
 
@@ -19,7 +22,7 @@ Use GitHub Issues and Projects as the durable control plane and memory for Loop 
 3. Discover repository, project, fields, options, labels, issue types, and item identifiers at runtime. Never copy IDs or option values from another repository or cache them in this skill.
 4. Frame one authorized state transition at a time, including the evidence and stop condition.
 5. Make the smallest mutation that can complete that transition, then re-read the affected resource.
-6. Persist verified state, decisions, and remaining work in GitHub so another agent or human can resume cold.
+6. Persist verified state, decisions, and remaining work in GitHub so another agent or human can resume cold. An issue that fails the cold-start check is not finished being written.
 7. Preserve repository conventions and existing content unless the user explicitly asks to change them.
 8. Treat tool output as a claim until a follow-up read confirms the intended state.
 
@@ -82,6 +85,10 @@ Before the first write:
 
 Paginate until uniqueness is established. Prefer human-readable project field names and option names when the current schema supports name-based resolution.
 
+#### First-use gate
+
+If this Discover pass shows that the repository's issues or the board have never been set up for this workflow, as defined in [references/initialization.md](references/initialization.md), stop the original transition. Propose initialization, and run it only after the user authorizes it. Resume the original request from a fresh Discover pass once initialization is verified or explicitly declined. If the user declines, work with the vocabulary that exists and don't invent labels or statuses.
+
 ### 2. Frame the next bounded transition
 
 Define:
@@ -96,10 +103,11 @@ Use explicit repository instructions over the defaults below. When no policy exi
 
 - Represent actionable work as a real issue, not a draft project card.
 - Use the repository's established language and terminology.
-- Keep the issue body cold-start readable: outcome, context, scope, acceptance criteria, validation, and dependencies.
+- Write the issue body to the cold-start contract in the work-item format reference: why, what, current state, acceptance criteria, and pointers, with absolute dates and no session-only references.
 - Use project fields as the source of truth for board state.
 - Add a duplicate priority label only when the repository already requires field-and-label synchronization.
-- Reuse existing labels. Create or rename labels only when the user requests it or standing repository policy clearly authorizes it.
+- Reuse existing labels. Create or rename labels only when the user requests it, standing repository policy clearly authorizes it, or an authorized initialization adds them.
+- Leave assignees empty on creation unless the user names someone. Decide assignment when work starts.
 - Use issue types only when supported; do not emulate them with new labels unless repository policy says to.
 - Treat agent-discovered follow-up work as a proposal. Create it only when the user requested discovery-and-creation or the repository has a standing intake policy.
 
@@ -110,6 +118,8 @@ Perform related mutations in dependency order. Change only the fields, labels, b
 ### 4. Verify from fresh state
 
 Re-read the affected issue, hierarchy, PR, or project item after each mutation. Request every field needed for comparison. Verify both sides when one operation can trigger automation elsewhere, such as closing an issue and moving a Project status.
+
+Whenever the transition created an issue, changed its body, or changed its Status, run the cold-start check on the body as read back from GitHub. A failed check means the transition is not yet verified.
 
 If an operation partially succeeds, rebuild the involved state and recover only the missing transition. Retry only with new evidence or a changed strategy; do not repeat an unchanged failing call indefinitely.
 
@@ -133,9 +143,14 @@ Map workflow intent to an existing project option; never assume exact option nam
 
 If no unambiguous option exists, leave the field unchanged and ask for the intended mapping. Do not promote agent-discovered work out of an intake state without explicit authorization or repository policy.
 
+Project automations can change state on their own, so check the documented workflows before acting:
+
+- An **Auto-close issue** workflow closes the issue as soon as Status becomes the completed option. Never set the completed option before the completion ritual. Close the issue and let the automation move Status, then verify.
+- When an issue is reopened and no reopen workflow is documented as enabled, move Status back to the correct option explicitly.
+
 ### Priority
 
-Use the project's existing priority scheme. Infer meaning only from documented option names or repository guidance. Do not invent `P0`, `P1`, or `P2`, and do not create a Priority field as part of an ordinary issue update.
+Use the project's existing priority scheme. Infer meaning only from documented option names or repository guidance. Do not invent `P0`, `P1`, or `P2`, and do not create a Priority field as part of an ordinary issue update. The baseline scheme in the initialization reference applies only after the user authorizes initialization.
 
 When the repository mirrors priority in labels, read the full current label set, remove only the superseded priority label, add the new one, and preserve every unrelated label.
 
@@ -152,11 +167,11 @@ Use absolute ISO dates (`YYYY-MM-DD`) for blockers, decisions, and completion no
 ### Create and add an issue
 
 1. Search for likely duplicates.
-2. Read labels, optional issue types, and the work-item format reference.
-3. Create the issue with a complete body and only known labels, assignees, milestone, and type.
+2. Read labels, optional issue types, repository templates, and the work-item format reference.
+3. Create the issue with a complete cold-startable body and only known labels, milestone, and type. Add assignees only when the user names them.
 4. Add it to the selected project.
 5. Set requested project fields one at a time by current field and option name.
-6. Read back both the issue and project item, including all fields just changed.
+6. Read back both the issue and project item, including all fields just changed, and run the cold-start check on the returned body.
 
 If the project auto-add workflow already attached the issue, treat an already-present response as success and continue with field updates.
 
@@ -168,7 +183,17 @@ If the project auto-add workflow already attached the issue, treat an already-pr
 4. Update only the requested project fields.
 5. Verify issue and board agree.
 
-Starting work normally means setting the existing active-status option and adding an implementation note only when it provides durable context. Do not assign the authenticated user unless requested or required by repository policy.
+Starting work normally means setting the existing active-status option, updating the body's current state, and adding an implementation note only when it provides durable context.
+
+#### Assignment when work starts
+
+Don't assign anyone when an issue is created. Decide assignment at the start transition:
+
+1. Read the current assignees.
+2. If the authenticated user is already assigned, keep the assignment.
+3. If nobody is assigned, ask the user whether to assign themselves. Skip the question only when the request or repository policy already decides it. Resolve the login with `get_me`, because MCP assignee lists don't accept `@me`.
+4. If someone else is assigned, don't reassign or add anyone. Report the current assignee and ask how to proceed.
+5. Send the complete intended assignee set, then re-read it.
 
 When one authorized transition sets the same field value on several items, such as moving a set of accepted children to the ready option, use the batch project update if the connected schema exposes it. Then verify every item. A batch can partially succeed.
 
@@ -176,7 +201,7 @@ When one authorized transition sets the same field value on several items, such 
 
 Use sub-issues when parts can be independently assigned, sequenced, or accepted. Keep small implementation steps as acceptance-criteria checkboxes.
 
-1. Create each child as a complete ordinary issue. When the connected schema supports it, pass the parent on creation so creation and attachment happen in one call.
+1. Create each child as a complete, cold-startable ordinary issue that names its parent in `Pointers`. When the connected schema supports it, pass the parent on creation so creation and attachment happen in one call.
 2. Otherwise, obtain the child's numeric issue ID from the create/read response and attach it with `sub_issue_write`.
 3. Add each child to the project and initialize its fields.
 4. Re-read the parent's sub-issues and each child project item.
@@ -207,7 +232,7 @@ For PRs, use an auto-closing keyword such as `Closes owner/repo#N` only when mer
 
 1. Re-read the issue, acceptance criteria, project fields, sub-issues, linked closing PRs, and relevant comments.
 2. Confirm every acceptance criterion with evidence. Record any explicit descoping. A linked PR is a pointer to evidence, not evidence itself.
-3. Update the issue body's durable state.
+3. Update the issue body's durable state so it reads as the final, cold-startable record, then run the cold-start check.
 4. Add a completion comment containing outcome, PR/commit links, validation, and authorized follow-ups.
 5. Close the issue with the appropriate state reason.
 6. Re-read the project item. If an automation did not move it to the completed option, update that field and verify again.
@@ -215,9 +240,20 @@ For PRs, use an auto-closing keyword such as `Closes owner/repo#N` only when mer
 
 Do not rely on an assumed project automation. Closing an issue and setting a project status are distinct until a read proves otherwise.
 
+### Initialize issues and board
+
+Run this only through the first-use gate, and only after the user authorizes it. Follow [references/initialization.md](references/initialization.md):
+
+1. Diff the repository and Project against the baseline profile. Build the plan in three lists: changes MCP will apply, UI steps for the user, and items left unchanged.
+2. Confirm the open decisions: language, Project, area labels, priority mirror, and blank issues.
+3. Create only the missing labels and views, plus the Project if the user asked for one.
+4. Propose the chosen issue templates from [assets/issue-templates/](assets/issue-templates/), together with the recorded conventions, in a pull request. Never push to the default branch, and never merge.
+5. Hand off the manual steps. Status options, the Priority field, workflows, the Project-repository link, and issue types all need the GitHub UI.
+6. Verify every readable result, record user-confirmed items as confirmed rather than verified, and resume the original request from Discover.
+
 ## Failure handling
 
-- On a missing field or option, refresh project fields once. Do not create, rename, or rewrite project configuration during an ordinary work-item operation.
+- On a missing field or option, refresh project fields once. Do not create, rename, or rewrite project configuration during an ordinary work-item operation. Configuration changes belong to an authorized initialization.
 - On an authorization error, report the resource and required read/write capability without exposing credentials.
 - On an ambiguous or stale item ID, locate the item again by repository and issue number.
 - On pagination, continue with returned cursors before concluding that an item, label, field, or project is absent.

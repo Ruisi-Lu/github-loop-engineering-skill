@@ -2,7 +2,8 @@
  * Repository consistency checks for the skill and its Claude Code plugin packaging.
  *
  * Covers invariants that `claude plugin validate` does not know about (marketplace entry
- * alignment, changelog version, Agent Skills frontmatter, relative Markdown links), then
+ * alignment, changelog version, Agent Skills frontmatter, cold-start issue templates,
+ * relative Markdown links), then
  * delegates to `claude plugin validate --strict` when the CLI is available. In CI the CLI
  * is required.
  */
@@ -142,6 +143,66 @@ async function checkSkills(): Promise<void> {
   }
 }
 
+// Cold-start sections every template must carry, per locale; bug templates add a reproduction section.
+const TEMPLATE_SECTIONS: Record<string, { base: string[]; bug: string }> = {
+  en: {
+    base: ["## Why", "## What", "## State", "## Acceptance criteria", "## Pointers"],
+    bug: "## Reproduction",
+  },
+  "zh-TW": {
+    base: ["## 背景 (Why)", "## 範圍 (What)", "## 現狀 (State)", "## 驗收條件 (Acceptance Criteria)", "## 指標 (Pointers)"],
+    bug: "## 重現 (Reproduction)",
+  },
+};
+const TEMPLATE_FILES = ["bug.md", "config.yml", "feature.md", "task.md"];
+const TEMPLATE_TYPES: Record<string, string> = { "bug.md": "Bug", "feature.md": "Feature", "task.md": "Task" };
+
+async function checkIssueTemplates(): Promise<void> {
+  for (const skillDir of new Bun.Glob("*/").scanSync({ cwd: join(root, "skills"), onlyFiles: false })) {
+    const templatesDir = join(root, "skills", skillDir, "assets", "issue-templates");
+    if (!existsSync(templatesDir)) continue;
+    for (const [locale, sections] of Object.entries(TEMPLATE_SECTIONS)) {
+      const localeDir = join(templatesDir, locale);
+      const files = existsSync(localeDir) ? [...new Bun.Glob("*").scanSync({ cwd: localeDir })].sort() : [];
+      if (files.join(",") !== TEMPLATE_FILES.join(",")) {
+        fail(localeDir, `expected exactly ${TEMPLATE_FILES.join(", ")}; found ${files.join(", ") || "nothing"}`);
+        continue;
+      }
+      await checkTemplateConfig(join(localeDir, "config.yml"));
+      for (const [file, type] of Object.entries(TEMPLATE_TYPES)) {
+        const path = join(localeDir, file);
+        const text = await Bun.file(path).text();
+        const frontmatter = parseFrontmatter(path, text);
+        if (!frontmatter) continue;
+        if (typeof frontmatter.name !== "string" || frontmatter.name.trim().length <= 3) {
+          fail(path, "name must be longer than 3 characters");
+        }
+        if (typeof frontmatter.about !== "string" || frontmatter.about.trim() === "") {
+          fail(path, "about must be a non-empty string");
+        }
+        if (frontmatter.type !== type) fail(path, `type must be "${type}"`);
+        if ("assignees" in frontmatter) fail(path, "must not assign anyone; assignment is decided when work starts");
+        const headings = new Set(stripCode(text).split("\n").map((line) => line.trimEnd()));
+        const required = file === "bug.md" ? [...sections.base, sections.bug] : sections.base;
+        for (const heading of required) {
+          if (!headings.has(heading)) fail(path, `missing cold-start section "${heading}"`);
+        }
+      }
+    }
+  }
+}
+
+async function checkTemplateConfig(path: string): Promise<void> {
+  try {
+    const value: unknown = Bun.YAML.parse(await Bun.file(path).text());
+    if (!isObject(value) || typeof value.blank_issues_enabled !== "boolean") {
+      fail(path, "blank_issues_enabled must be a boolean");
+    }
+  } catch (error) {
+    fail(path, `invalid YAML: ${(error as Error).message}`);
+  }
+}
+
 function stripCode(markdown: string): string {
   return markdown.replace(/^(```|~~~)[\s\S]*?^\1[^\n]*$/gm, "").replace(/`[^`\n]*`/g, "");
 }
@@ -236,6 +297,7 @@ function runOfficialValidator(): void {
 
 await checkManifests();
 await checkSkills();
+await checkIssueTemplates();
 await checkMarkdownLinks();
 checkRootDependencies();
 runOfficialValidator();

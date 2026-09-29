@@ -76,8 +76,11 @@ If a needed tool is absent, tell the user which toolset or write capability is m
 | Read one project resource | `projects_get` | `get_project`, `get_project_field`, or `get_project_item` |
 | Add/update/delete project item | `projects_write` | `add_project_item`, `update_project_item`, or `delete_project_item` |
 | Set one field on many items | `projects_write` | `update_project_items`, up to 50 items per call |
+| Create a project view | `projects_write` | `create_project_view` with `name`, `layout`, and `visible_field_names` |
 | Read a PR | `pull_request_read` | `get`, `get_comments`, `get_files`, or related method |
 | Update a PR | `update_pull_request` | PR number and changed fields |
+| Read repository files, such as issue templates | `get_file_contents` | owner, repo, and `path` |
+| Propose file changes | `create_branch`, `push_files`, `create_pull_request` | a new branch, one commit, and a PR against the default branch |
 
 Pagination parameter names differ by tool. Issue and project list tools currently use `perPage`, and project lists return a cursor for `after`. Follow the connected schema instead of these examples.
 
@@ -212,6 +215,74 @@ Paginate and match the content by repository plus issue number. If the add/updat
 
 Treat `labels` on an update as replacement-capable. Never send only the new label unless the current schema explicitly guarantees additive behavior.
 
+### Set assignees when work starts
+
+`assignees` takes GitHub logins. It doesn't accept the `@me` shorthand, so resolve the authenticated login with `get_me` first. Like `labels`, treat `assignees` on an update as replacement-capable: read the current assignees with `issue_read` `get`, send the complete intended set, and re-read.
+
+```json
+{
+  "method": "update",
+  "owner": "octo-org",
+  "repo": "widgets",
+  "issue_number": 42,
+  "assignees": ["octocat"]
+}
+```
+
+### Create a missing label during initialization
+
+Call `label_write` once per missing label, after listing all labels to confirm it is absent:
+
+```json
+{
+  "method": "create",
+  "owner": "octo-org",
+  "repo": "widgets",
+  "name": "tech-debt",
+  "color": "D93F0B",
+  "description": "Refactoring, cleanup, or missing tests"
+}
+```
+
+The color has no `#` prefix. Use `method: "update"` on an existing label only with explicit approval.
+
+### Add a project view during initialization
+
+```json
+{
+  "method": "create_project_view",
+  "owner": "octo-org",
+  "owner_type": "org",
+  "project_number": 7,
+  "name": "Board",
+  "layout": "board",
+  "visible_field_names": ["Title", "Assignees", "Status", "Priority", "Linked pull requests", "Sub-issues progress"]
+}
+```
+
+`visible_field_names` is honored on creation for table and board layouts. Roadmap views accept only `[]`.
+
+### Propose issue templates in a pull request
+
+Check `.github/ISSUE_TEMPLATE` with `get_file_contents` first. Then create a branch from the default branch with `create_branch`, push the template files and any guidance update in one commit with `push_files`, and open a PR with `create_pull_request`:
+
+```json
+{
+  "owner": "octo-org",
+  "repo": "widgets",
+  "branch": "chore/issue-templates",
+  "message": "chore(github): add cold-start issue templates",
+  "files": [
+    { "path": ".github/ISSUE_TEMPLATE/feature.md", "content": "..." },
+    { "path": ".github/ISSUE_TEMPLATE/bug.md", "content": "..." },
+    { "path": ".github/ISSUE_TEMPLATE/task.md", "content": "..." },
+    { "path": ".github/ISSUE_TEMPLATE/config.yml", "content": "blank_issues_enabled: false\n" }
+  ]
+}
+```
+
+Follow the repository's commit and branch conventions. Never push to the default branch, and leave the merge to a human. Templates apply only after they reach the default branch.
+
 ### Create and attach a sub-issue
 
 If the connected `issue_write` schema exposes `parent_issue_number`, create the child and attach it in one call:
@@ -297,4 +368,4 @@ Use an absolute date and include links or commit SHAs when available.
 
 Use a native issue-dependency mutation only if a dedicated dependency write tool appears in the connected schema. Do not route around a missing MCP capability with direct HTTP, CLI, or GraphQL. Record the blocker in the issue body/comment and available project fields or labels, then disclose that the native relation remains unchanged.
 
-Similarly, do not assume the MCP server can create arbitrary project fields, configure project workflows, or edit draft cards. Scope setup requests to tools actually exposed by the connected server.
+Similarly, do not assume the MCP server can create arbitrary project fields, configure project workflows, or edit draft cards. Scope setup requests to tools actually exposed by the connected server. The current surface can't add single-select fields or options, configure or read project workflows, link a Project to a repository, or manage issue types and issue fields. During initialization, hand those steps to the user as exact UI instructions.

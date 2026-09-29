@@ -36,25 +36,28 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 
 ## Why this skill
 
+- **Cold-startable:** every issue passes a cold-start check, so a new collaborator or a fresh agent session can act on it without chat history.
 - **Loop-native:** every mutation is one pass through discover, frame, act, verify, and persist.
 - **Evidence-gated:** acceptance criteria and current read-back state control lifecycle transitions.
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
+- **Assignment at start:** issues are created unassigned. The agent asks whether to assign the user when work starts, unless the request or repository policy already decides.
 - **MCP-only:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL.
 - **Host-portable:** the skill is standard Agent Skills content with no vendor-specific agent metadata. The Claude Code plugin is an optional wrapper that installs the same files unchanged.
-- **Repository-agnostic:** no hard-coded owner, project number, field ID, option ID, label, language, or status vocabulary.
+- **Repository-agnostic:** no hard-coded owner, project number, field ID, or option ID. Existing repository vocabulary always wins. A baseline vocabulary applies only when the user authorizes first-use initialization.
 - **Recoverable:** partial failures trigger a fresh read and bounded recovery, never blind replay.
 - **Honest about limits:** missing tools, permissions, or authority become explicit stop conditions.
 
 ## What it manages
 
-- issue creation, triage, assignment, priority, and status;
+- first-use initialization of labels, issue templates, the Project board, and its automations;
+- cold-startable issue creation, triage, assignment, priority, and status;
 - project item attachment and custom field updates;
 - sub-issue decomposition and hierarchy verification;
 - blockers, implementation notes, and PR/commit references;
 - evidence-backed acceptance criteria;
 - completion, follow-up routing, and human handoff.
 
-This is the lifecycle control and memory layer, not an autonomous scheduler or coding-agent runtime. It does not launch agents, run code, merge changes, or bypass a missing MCP capability.
+This is the lifecycle control and memory layer, not an autonomous scheduler or coding-agent runtime. It does not launch agents, run code, merge changes, or bypass a missing MCP capability. Initialization proposes issue templates through a pull request and leaves the merge to a human. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
 
 ## Contents
 
@@ -62,7 +65,9 @@ This is the lifecycle control and memory layer, not an autonomous scheduler or c
 |:--|:--|
 | `skills/github-loop-engineering-skill/SKILL.md` | Core loop, lifecycle rules, and safety contract |
 | `skills/github-loop-engineering-skill/references/github-mcp-tools.md` | Official GitHub MCP tool map and payload patterns |
-| `skills/github-loop-engineering-skill/references/work-item-format.md` | Portable issue, blocker, note, and completion formats |
+| `skills/github-loop-engineering-skill/references/work-item-format.md` | Cold-start contract and check, plus issue, blocker, note, and completion formats |
+| `skills/github-loop-engineering-skill/references/initialization.md` | First-use detection, authorization gate, and baseline for labels, board, automations, and templates |
+| `skills/github-loop-engineering-skill/assets/issue-templates/` | Cold-start issue templates (`en`, `zh-TW`) that initialization installs into `.github/ISSUE_TEMPLATE/` |
 | `.claude-plugin/plugin.json` | Claude Code plugin manifest and release version |
 | `.claude-plugin/marketplace.json` | Single-plugin Claude Code marketplace catalog |
 | `scripts/` | Bun and TypeScript repository checks (development only) |
@@ -221,6 +226,14 @@ Enforce a completion gate:
 ```text
 Use the GitHub Loop Engineering skill to close issue #42 only if every acceptance
 criterion has current evidence, then synchronize and verify the project status.
+```
+
+Initialize a repository on first use:
+
+```text
+Use the GitHub Loop Engineering skill to set up this repository's issues and board
+for the first time. Propose the labels, Project fields, automations, and zh-TW
+issue templates, apply what I approve, and list the steps I must do in the UI.
 ```
 
 The skill follows repository instructions and existing project vocabulary. Ambiguous targets, insufficient evidence, missing capabilities, and new authority requirements stop the loop before an unsafe transition.

@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A cold-start contract and a cold-start check that runs on the read-back body when an issue is created, when its body or Status changes, and before it is closed.
+- First-use initialization: a gate that detects uninitialized issues or boards, an authorization step, and a baseline for Status and Priority options, labels, project workflows, views, issue types, and repository settings. The baseline is derived from a production setup (`references/initialization.md`).
+- Cold-start issue templates for Feature, Bug, and Task in `en` and `zh-TW` (`assets/issue-templates/`). Initialization proposes them through a pull request.
+- MCP payload patterns for creating labels, adding project views, setting assignees, and proposing files through a pull request.
+- Repository checks for the issue templates: the same file set in each locale, valid front matter, the required cold-start sections, and no preset assignees.
+
+### Changed
+
+- Issues are created unassigned. Assignment is decided when work starts, and the agent asks before assigning the user unless the request or repository policy already decides. `get_me` resolves the login, because MCP assignee lists don't accept `@me`.
+- The work-item format now uses the template sections `Why`, `What`, `State`, `Acceptance criteria`, and `Pointers`, with a `Reproduction` section for bugs.
+- Lifecycle rules now account for project automations. An Auto-close issue workflow closes the issue when Status becomes Done, and without a reopen workflow, Status must be restored by hand after a reopen.
+
 ## [1.0.0] - 2026-09-29
 
 First versioned release. Earlier commits were unversioned.
