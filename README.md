@@ -42,7 +42,8 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - **Evidence-gated:** acceptance criteria and current read-back state control lifecycle transitions.
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
 - **Assignment at start:** issues are created unassigned. The agent asks whether to assign the user when work starts, unless the request or repository policy already decides.
-- **MCP-only:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL.
+- **Agent-first triage:** agents set Priority when they create an issue and move accepted work out of intake by best judgment, unless repository guidance reserves triage for humans.
+- **MCP-first:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL, except user-authorized fallbacks for the two writes the official server lacks: native issue dependencies and milestones.
 - **Host-portable:** the skill is standard Agent Skills content with no vendor-specific agent metadata. The Claude Code plugin is an optional wrapper that installs the same files unchanged.
 - **Repository-agnostic:** no hard-coded owner, project number, field ID, or option ID. Existing repository vocabulary always wins. A baseline vocabulary applies only when the user authorizes first-use initialization.
 - **Recoverable:** partial failures trigger a fresh read and bounded recovery, never blind replay.

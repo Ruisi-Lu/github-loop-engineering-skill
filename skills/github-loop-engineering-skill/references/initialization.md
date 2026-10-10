@@ -48,6 +48,7 @@ If the user declines, record that in the handoff and continue the original reque
 3. **Area labels:** one `area:<component>` label per top-level component, proposed from the repository layout, for example the directories under `apps/` and `packages/` in a monorepo.
 4. **Priority mirror:** mirror the board Priority in `priority:*` labels (baseline), in an organization Priority issue field if one exists, or nowhere. The board field stays the source of truth.
 5. **Blank issues:** whether the template chooser should hide blank issues from people without write access (baseline: hide).
+6. **Triage authority:** agents triage by best judgment, setting Priority and moving accepted work out of `Triage` (baseline), or humans approve every item out of `Triage`.
 
 ## Baseline profile
 
@@ -59,7 +60,7 @@ The Status field already exists on a new Project. Its options must match this li
 
 | Option | Color | Meaning |
 |:--|:--|:--|
-| `Triage` | Gray | Created by an agent or not yet reviewed. A human approves it into `Todo` or closes it. Agents never promote out of `Triage` on their own |
+| `Triage` | Gray | Not yet reviewed. Whoever triages it, agent or human, moves it to `Todo` or closes it |
 | `Todo` | Green | Approved and not started. It can still wait on prerequisite issues, which GitHub marks as blocked |
 | `In Progress` | Yellow | Being worked on |
 | `Blocked` | Red | Stopped by something outside the work graph. The issue carries the `blocked` label and a `Blocked by` section |
@@ -75,7 +76,7 @@ A single-select field named `Priority`:
 | `P1` | Orange | Current focus |
 | `P2` | Gray | Scheduled backlog |
 
-An unset Priority means the item has not been triaged yet.
+An unset Priority means nobody has triaged the item yet. Agents set it when they create an issue.
 
 ### Labels
 
@@ -106,7 +107,7 @@ Configure these in the Project's **Workflows** page:
 |:--|:--|:--|
 | Auto-add to project | On, filtered to the repository's open issues and pull requests | An issue can appear on the board before `add_project_item` runs. Treat "already exists" as success |
 | Auto-add sub-issues to project | On | Children join the board with their parent |
-| Item added to project | On, sets Status to `Triage` | New items land in intake until a human approves them |
+| Item added to project | On, sets Status to `Triage` | New items land in intake until someone triages them |
 | Item closed | On, sets Status to `Done` | Closing moves the card. Still verify it |
 | Pull request linked to issue | On, sets Status to `In Progress` | Linking a PR starts the work on the board |
 | Pull request merged | On, sets Status to `Done` | Merging moves the card. Still verify it |
@@ -136,7 +137,7 @@ The templates never assign anyone. Assignment is decided when work starts. They 
 
 - Issues are enabled.
 - The Project is linked to the repository, so the repository's **Projects** tab lists it and auto-add can target it.
-- The resulting conventions are recorded in repository guidance: the Project owner, title, and number, the vocabulary above, the language, the priority mirror, and that the issue templates come from this skill in the chosen locale. Record names, never IDs.
+- The resulting conventions are recorded in repository guidance: the Project owner, title, and number, the vocabulary above, the language, the priority mirror, the triage authority, and that the issue templates come from this skill in the chosen locale. Record names, never IDs.
 
 ## What MCP can apply
 

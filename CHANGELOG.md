@@ -13,9 +13,11 @@ All notable changes to this project are documented here. The format follows [Kee
 - Guidance for bulk changes: GitHub's secondary rate limits, batch field updates, chunked delegation, and a control query before trusting an empty filter result.
 - A `Ready` view in the initialization baseline, filtered to `status:Todo -is:blocked`.
 - A rule to repeat the MCP-only rule, exact tool inputs, and stop conditions when delegating GitHub work, because a delegated agent doesn't inherit the skill.
+- Fallbacks for writing native issue dependencies and creating milestones, which the official MCP server doesn't support yet. They use the GitHub CLI's API client for exactly those requests, and only after the user authorizes them.
 
 ### Changed
 
+- Agents triage by best judgment: they set Priority when they create an issue and move accepted work out of Triage themselves. Repository guidance, or Status descriptions on boards initialized with earlier versions, can reserve triage for humans. Initialization adds triage authority as a decision.
 - Waiting on another issue is recorded as a native blocked-by dependency and keeps the accepted status. `Blocked`, the `blocked` label, and the `Blocked by` section are for blockers outside the work graph.
 - Issue bodies no longer repeat board fields such as Status or Priority, and `Pointers` lists the parent and prerequisite issues. The `en` and `zh-TW` templates follow.
 

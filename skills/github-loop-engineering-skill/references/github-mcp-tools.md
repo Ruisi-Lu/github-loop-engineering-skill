@@ -49,7 +49,7 @@ The official server's default toolsets are `context`, `issues`, `pull_requests`,
 
 Project reads require project-read access; project writes require project-write access. Issue and repository operations require access to the target repository. A server configured in read-only mode will not expose write tools even when a write toolset is requested.
 
-If a needed tool is absent, tell the user which toolset or write capability is missing. Stay MCP-only.
+If a needed tool is absent, tell the user which toolset or write capability is missing. Stay MCP-only, apart from the authorized fallbacks under [Capability gaps](#capability-gaps).
 
 ## Canonical operations
 
@@ -389,6 +389,19 @@ Use an absolute date and include links or commit SHAs when available.
 
 ## Capability gaps
 
-Use a native issue-dependency mutation only if a dedicated dependency write tool appears in the connected schema. Do not route around a missing MCP capability with direct HTTP, CLI, or GraphQL. Record the blocker in the issue body/comment and available project fields or labels, then disclose that the native relation remains unchanged.
+The official server can't yet write native issue dependencies or create milestones. Prefer an MCP tool for either as soon as the connected schema exposes one.
+
+Until then, each gap has one fallback through the GitHub CLI's authenticated API client. Use it only after the user explicitly authorizes that operation for the repository, and record a standing authorization in repository guidance so later sessions don't ask again. Nothing else goes through the CLI:
+
+| Operation | Request |
+|:--|:--|
+| List an issue's prerequisites | `gh api repos/{owner}/{repo}/issues/{number}/dependencies/blocked_by` |
+| Add a prerequisite | `gh api -X POST repos/{owner}/{repo}/issues/{number}/dependencies/blocked_by -F issue_id={id}` |
+| Remove a prerequisite | `gh api -X DELETE repos/{owner}/{repo}/issues/{number}/dependencies/blocked_by/{id}` |
+| Create a milestone | `gh api -X POST repos/{owner}/{repo}/milestones -f title={title} -f description={description}` |
+
+`{number}` is the waiting issue's number. `{id}` is the prerequisite's numeric database ID from `issue_read`, not its issue number. Each write counts against the secondary rate limits. Read the list back after writing.
+
+Without authorization, record the prerequisite in the waiting issue's `Pointers` and disclose that the native relation remains unchanged. Do not route any other operation through direct HTTP, a CLI, or GraphQL.
 
 Similarly, do not assume the MCP server can create arbitrary project fields, configure project workflows, or edit draft cards. Scope setup requests to tools actually exposed by the connected server. The current surface can't add single-select fields or options, configure or read project workflows, link a Project to a repository, or manage issue types and issue fields. During initialization, hand those steps to the user as exact UI instructions.

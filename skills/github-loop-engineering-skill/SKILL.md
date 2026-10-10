@@ -20,7 +20,7 @@ A parent issue is the unit of parallel work. Its sub-issues and the blocked-by d
 
 ## Operating contract
 
-1. Use only the connected GitHub MCP server for GitHub reads and writes. Do not fall back to `gh`, `curl`, direct REST, or handwritten GraphQL.
+1. Use only the connected GitHub MCP server for GitHub reads and writes. Do not fall back to `gh`, `curl`, direct REST, or handwritten GraphQL. The only exceptions are the operations under [Capability gaps](references/github-mcp-tools.md#capability-gaps), each after the user explicitly authorizes it.
 2. Treat the connected tool schemas as authoritative. MCP hosts may namespace tool names; match the terminal tool name and semantics rather than assuming a prefix.
 3. Discover repository, project, fields, options, labels, issue types, and item identifiers at runtime. Never copy IDs or option values from another repository or cache them in this skill.
 4. Frame one authorized state transition at a time, including the evidence and stop condition.
@@ -76,7 +76,7 @@ If no GitHub MCP server is connected, enter the bootstrap gate:
 
 Do not treat cloning the server repository as installation unless the host is also configured to launch the built server. If the environment cannot install or connect MCP servers, stop with the exact host-specific action or authentication step the user must complete.
 
-The official server's default toolsets omit `projects` and `labels`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client.
+The official server's default toolsets omit `projects` and `labels`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client. The fallbacks under [Capability gaps](references/github-mcp-tools.md#capability-gaps) cover only operations the server doesn't offer at all.
 
 Before the first write:
 
@@ -109,6 +109,7 @@ Use explicit repository instructions over the defaults below. When no policy exi
 - Use the repository's established language and terminology.
 - Write the issue body to the cold-start contract in the work-item format reference: why, what, current state, acceptance criteria, and pointers, with absolute dates and no session-only references.
 - Use project fields as the source of truth for board state.
+- Triage by best judgment, as described under [Status](#status) and [Priority](#priority).
 - Add a duplicate priority label only when the repository already requires field-and-label synchronization.
 - Reuse existing labels. Create or rename labels only when the user requests it, standing repository policy clearly authorizes it, or an authorized initialization adds them.
 - Leave assignees empty on creation unless the user names someone. Decide assignment when work starts.
@@ -145,7 +146,9 @@ Map workflow intent to an existing project option; never assume exact option nam
 - work stopped by something outside the work graph → `Blocked` or equivalent;
 - completed work → `Done`, `Complete`, or equivalent.
 
-If no unambiguous option exists, leave the field unchanged and ask for the intended mapping. Do not promote agent-discovered work out of an intake state without explicit authorization or repository policy.
+If no unambiguous option exists, leave the field unchanged and ask for the intended mapping.
+
+Agents triage by best judgment: accepted work moves to the accepted option, and rejected work is closed as not planned. Leave triage to humans when repository guidance or the project's own Status descriptions reserve it, as boards initialized with earlier versions of this skill do.
 
 Waiting on another issue is not a blocked status. Record the prerequisite as a native blocked-by dependency and keep the item in the accepted option. GitHub marks the item blocked until every prerequisite closes, so the Project filter `-is:blocked` separates work that can start now from work that waits. Use the blocked option only for blockers outside the work graph, such as a pending decision, missing hardware or access, or another team.
 
@@ -159,6 +162,8 @@ Project automations can change state on their own, so check the documented workf
 ### Priority
 
 Use the project's existing priority scheme. Infer meaning only from documented option names or repository guidance. Do not invent `P0`, `P1`, or `P2`, and do not create a Priority field as part of an ordinary issue update. The baseline scheme in the initialization reference applies only after the user authorizes initialization.
+
+Set Priority when you create an issue, by best judgment against those meanings, unless repository guidance reserves it for humans. When the current focus follows milestones, raise the next milestone's issues when it becomes current.
 
 When the repository mirrors priority in labels, read the full current label set, remove only the superseded priority label, add the new one, and preserve every unrelated label. An organization can also define an issue field named Priority. It is separate from the Project's field, so set it only when repository guidance chose it as the mirror.
 
@@ -244,7 +249,7 @@ Use this when you are asked to work through a parent issue and the host can run 
 
 A wait on another issue and a blocker outside the work graph are recorded differently.
 
-**Prerequisite issue.** Add a native blocked-by dependency from the waiting issue to its prerequisite, list the prerequisite in `Pointers`, and leave Status unchanged. The Project's `is:blocked` filter reflects the dependency, and GitHub clears it when the prerequisite closes. Add the dependency only when the connected MCP schema exposes a documented dependency write tool. The official tool surface may not expose one. In that case, keep the prerequisite in `Pointers` and report that the native dependency relation was not changed. Never fabricate a tool or leave the task looking fully linked when it is not.
+**Prerequisite issue.** Add a native blocked-by dependency from the waiting issue to its prerequisite, list the prerequisite in `Pointers`, and leave Status unchanged. The Project's `is:blocked` filter reflects the dependency, and GitHub clears it when the prerequisite closes. Use an MCP dependency write tool when the connected schema exposes one. The official server doesn't yet, so follow [Capability gaps](references/github-mcp-tools.md#capability-gaps): with the user's authorization, use its fallback; without it, keep the prerequisite in `Pointers` and report that the native dependency relation was not changed. Never fabricate a tool or leave the task looking fully linked when it is not.
 
 **External blocker.** When marking blocked:
 
@@ -287,7 +292,7 @@ Large runs, such as creating a work graph or retriaging a board, meet limits tha
 Run this only through the first-use gate, and only after the user authorizes it. Follow [references/initialization.md](references/initialization.md):
 
 1. Diff the repository and Project against the baseline profile. Build the plan in three lists: changes MCP will apply, UI steps for the user, and items left unchanged.
-2. Confirm the open decisions: language, Project, area labels, priority mirror, and blank issues.
+2. Confirm the open decisions: language, Project, area labels, priority mirror, blank issues, and triage authority.
 3. Create only the missing labels and views, plus the Project if the user asked for one.
 4. Propose the chosen issue templates from [assets/issue-templates/](assets/issue-templates/), together with the recorded conventions, in a pull request. Never push to the default branch, and never merge.
 5. Hand off the manual steps. Status options, the Priority field, workflows, the Project-repository link, and issue types all need the GitHub UI.
