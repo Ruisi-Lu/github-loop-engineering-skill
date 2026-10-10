@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-10
+
 ### Fixed
 
 - Delegated writes keep reading and writing in separate messages, so an agent never sends content it hasn't seen. Delegation prompts now carry that rule.
@@ -62,7 +64,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.2.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.2.1...HEAD
+[1.2.1]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.2.0...github-loop-engineering--v1.2.1
 [1.2.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.1.0...github-loop-engineering--v1.2.0
 [1.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.0.0...github-loop-engineering--v1.1.0
 [1.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/releases/tag/github-loop-engineering--v1.0.0
