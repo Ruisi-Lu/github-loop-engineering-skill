@@ -28,7 +28,7 @@ A parent issue is the unit of parallel work. Its sub-issues and the blocked-by d
 6. Persist verified state, decisions, and remaining work in GitHub so another agent or human can resume cold. An issue that fails the cold-start check is not finished being written.
 7. Preserve repository conventions and existing content unless the user explicitly asks to change them.
 8. Treat tool output as a claim until a follow-up read confirms the intended state.
-9. When you delegate GitHub work to another agent, put these rules in its prompt: GitHub access through MCP only, the exact tools and inputs, and when to stop and report. A delegated agent doesn't inherit this skill.
+9. When you delegate GitHub work to another agent, put these rules in its prompt: GitHub access through MCP only, the exact tools and inputs, never writing content it hasn't read, and when to stop and report. A delegated agent doesn't inherit this skill.
 
 ## Loop engineering model
 
@@ -284,8 +284,9 @@ Large runs, such as creating a work graph or retriaging a board, meet limits tha
 
 - GitHub's secondary rate limits allow about 80 content-creating requests per minute and 500 per hour for each user, counting the web UI and both APIs. Count every issue create or update, comment, label change, project field update, and dependency write. Include what earlier runs spent in the past hour, and pace the run to stay under both limits.
 - Use `update_project_items` when one field value applies to many items.
-- Split long runs into chunks. Delegate each chunk with the exact tool inputs and one write per message, and have it report what it changed and any anomaly.
+- Split long runs into chunks. Delegate each chunk with the exact tool inputs and one write per message, and have it report what it changed and any anomaly. When a write carries content the agent must read first, such as a prepared issue body, require the read and the write in separate messages. An agent that sends both at once writes text it hasn't seen.
 - Verify with compact reads, such as `list_issues` with only the fields you compare, and with Project filters such as `no:priority`. An empty filter result proves nothing until a filter that must match returns items, so run that control first.
+- Audit the writes, not only the end state. Compare every write's inputs with the intended values, using the host's record of delegated tool calls when it keeps one. A wrong write that a later write corrected still leaves a revision in the issue's edit history and a cross-reference on every issue it mentioned, and a read-back of the final state shows neither. Report any such write and what it left behind.
 
 ### Initialize issues and board
 

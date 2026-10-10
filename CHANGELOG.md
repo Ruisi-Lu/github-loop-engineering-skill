@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Fixed
+
+- Delegated writes keep reading and writing in separate messages, so an agent never sends content it hasn't seen. Delegation prompts now carry that rule.
+- Bulk runs audit every write's inputs as well as the end state. A wrong write that was corrected later still leaves an edit-history revision and cross-references, which a final read-back can't show.
+
 ## [1.2.0] - 2026-10-10
 
 ### Added
