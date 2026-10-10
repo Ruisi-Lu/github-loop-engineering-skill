@@ -45,7 +45,7 @@ The official server's default toolsets are `context`, `issues`, `pull_requests`,
 | `issues` | Read/write issues, comments, types, and sub-issues |
 | `labels` | List or maintain repository labels |
 | `projects` | Discover Projects, add items, and update fields |
-| `pull_requests` | Read or update PR linkage and completion context |
+| `pull_requests` | Read, review, and merge pull requests, and update their linkage |
 
 Project reads require project-read access; project writes require project-write access. Issue and repository operations require access to the target repository. A server configured in read-only mode will not expose write tools even when a write toolset is requested.
 
@@ -82,6 +82,13 @@ If a needed tool is absent, tell the user which toolset or write capability is m
 | Create a project view | `projects_write` | `create_project_view` with `name`, `layout`, and `visible_field_names` |
 | Read a PR | `pull_request_read` | `get`, `get_comments`, `get_files`, or related method |
 | Update a PR | `update_pull_request` | PR number and changed fields |
+| Read a PR's labels | `pull_request_read` | `get`; `issue_read` can't resolve a PR number |
+| Label a PR | `issue_write` | `update` with the PR number and the complete label set |
+| Read a PR's CI results | `pull_request_read` | `get_check_runs` and `get_status` |
+| Read a PR's commits | `pull_request_read` | `get_commits` |
+| Read a PR's reviews | `pull_request_read` | `get_reviews` |
+| Request reviewers | `create_pull_request` or `update_pull_request` | `reviewers` |
+| Merge a PR | `merge_pull_request` | `merge_method` and `expectedHeadSha` |
 | Read repository files, such as issue templates | `get_file_contents` | owner, repo, and `path` |
 | Propose file changes | `create_branch`, `push_files`, `create_pull_request` | a new branch, one commit, and a PR against the default branch |
 
@@ -304,7 +311,7 @@ Check `.github/ISSUE_TEMPLATE` with `get_file_contents` first. Then create a bra
 }
 ```
 
-Follow the repository's commit and branch conventions. Never push to the default branch, and leave the merge to a human. Templates apply only after they reach the default branch.
+Follow the repository's commit and branch conventions. Never push to the default branch. Label the PR `review:human` and leave the merge to a human. Templates apply only after they reach the default branch.
 
 ### Create and attach a sub-issue
 
@@ -386,6 +393,39 @@ Call `add_issue_comment`:
 ```
 
 Use an absolute date and include links or commit SHAs when available.
+
+### Label a pull request
+
+A pull request is also an issue, so `issue_write` sets its labels. `create_pull_request` takes no labels, and `issue_read` can't resolve a PR number, so read the current labels with `pull_request_read` `get` first. Then send the complete set:
+
+```json
+{
+  "method": "update",
+  "owner": "octo-org",
+  "repo": "widgets",
+  "issue_number": 128,
+  "labels": ["area:api", "review:ai"]
+}
+```
+
+To move a PR to the other lane, drop the old review label and keep every unrelated label. Re-read the PR's labels afterwards.
+
+### Merge a pull request
+
+Merge only after the merge gate in the [pull request reference](pull-requests.md#merge-gate) passes, and after fresh `pull_request_read` reads show the PR still labeled `review:ai` at the same head SHA, with no change requests and green CI. Pass that SHA:
+
+```json
+{
+  "owner": "octo-org",
+  "repo": "widgets",
+  "pullNumber": 128,
+  "merge_method": "squash",
+  "expectedHeadSha": "6dcb09b5b57875f334f61aebed695e2e4193db5e",
+  "commit_title": "feat(api): make upload retries observable (#128)"
+}
+```
+
+Use `merge` instead of `squash` for a PR that integrates several issues. If the head moved after the gate, the call fails, and the gate runs again on the new head. Re-read the PR to confirm that it merged.
 
 ## Capability gaps
 

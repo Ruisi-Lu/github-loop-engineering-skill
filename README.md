@@ -43,6 +43,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
 - **Assignment at start:** issues are created unassigned. The agent asks whether to assign the user when work starts, unless the request or repository policy already decides.
 - **Agent-first triage:** agents set Priority when they create an issue and move accepted work out of intake by best judgment, unless repository guidance reserves triage for humans.
+- **Two review lanes:** every pull request is labeled `review:human` or `review:ai`. A human reviews interface and UX changes and anything that isn't clearly mergeable. An agent merges the rest only after green CI, an audited pre-commit review of every commit, evidence for every acceptance criterion, and its own rerun of the checks in a clean checkout.
 - **MCP-first:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL, except user-authorized fallbacks for the two writes the official server lacks: native issue dependencies and milestones.
 - **Host-portable:** the skill is standard Agent Skills content with no vendor-specific agent metadata. The Claude Code plugin is an optional wrapper that installs the same files unchanged.
 - **Repository-agnostic:** no hard-coded owner, project number, field ID, or option ID. Existing repository vocabulary always wins. A baseline vocabulary applies only when the user authorizes first-use initialization.
@@ -58,11 +59,12 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - sub-issue decomposition into parallel work graphs, with dependencies and hierarchy verification;
 - fan-out of a parent issue's ready children to parallel agents;
 - blockers, implementation notes, and PR/commit references;
+- pull request review lanes, and an evidence-gated merge for clearly mergeable pull requests;
 - evidence-backed acceptance criteria;
 - bulk changes paced under GitHub's rate limits;
 - completion, follow-up routing, and human handoff.
 
-This is the lifecycle control and memory layer, not a coding-agent runtime. When a host can run agents in parallel, the skill decides which issues are ready, tells the host what to hand to each agent, and verifies every result on GitHub; the host launches the agents and their workspaces. The skill never runs code or merges changes, and it bypasses a missing MCP capability only through the user-authorized fallbacks in the MCP reference. Initialization and template updates go through pull requests that a human merges. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
+This is the lifecycle control and memory layer, not a coding-agent runtime. When a host can run agents in parallel, the skill decides which issues are ready, tells the host what to hand to each agent, and verifies every result on GitHub; the host launches the agents and their workspaces. The skill runs code only to recheck a pull request in a clean checkout before merging it, and it merges only `review:ai` pull requests that pass the merge gate. It bypasses a missing MCP capability only through the user-authorized fallbacks in the MCP reference. Initialization and template updates go through pull requests that a human merges. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
 
 ## Contents
 
@@ -73,6 +75,7 @@ This is the lifecycle control and memory layer, not a coding-agent runtime. When
 | `skills/github-loop-engineering-skill/references/work-item-format.md` | Cold-start contract and check, plus issue, blocker, note, and completion formats |
 | `skills/github-loop-engineering-skill/references/initialization.md` | First-use detection, authorization gate, and baseline for labels, board, automations, and templates |
 | `skills/github-loop-engineering-skill/references/issue-templates.md` | How the skill installs issue templates and keeps them current |
+| `skills/github-loop-engineering-skill/references/pull-requests.md` | Pull request review labels, classification, merge gate, and post-merge checks |
 | `skills/github-loop-engineering-skill/assets/issue-templates/` | Cold-start issue templates (`en`, `zh-TW`) that initialization installs into `.github/ISSUE_TEMPLATE/` |
 | `.claude-plugin/plugin.json` | Claude Code plugin manifest and release version |
 | `.claude-plugin/marketplace.json` | Single-plugin Claude Code marketplace catalog |
@@ -242,6 +245,14 @@ that can start now to its own agent in a separate worktree, verify each result o
 GitHub, and keep going until the epic is done or needs me.
 ```
 
+Merge a clearly mergeable pull request:
+
+```text
+Use the GitHub Loop Engineering skill to check PR #128. If it is labeled review:ai
+and passes the merge gate, merge it, then verify that its issues closed and the
+board moved them to Done.
+```
+
 Initialize a repository on first use:
 
 ```text
@@ -256,7 +267,9 @@ The skill follows repository instructions and existing project vocabulary. Ambig
 
 The skill targets the official GitHub MCP Server's documented tool surface. It never silently switches to a CLI or direct API: it uses the GitHub CLI's API client only for native issue dependencies and milestones, which the server can't write yet, and only after the user authorizes it. Arbitrary project configuration remains conditional on the tools exposed by the connected server.
 
-Each agent completes one lifecycle operation or bounded recovery at a time. Fanning out a parent issue coordinates many such loops: the skill decides what is ready and verifies the results, while the host provides the agents and their isolated worktrees. Code evaluation, deployment, and unattended repetition belong to the surrounding Loop Engineering harness.
+Each agent completes one lifecycle operation or bounded recovery at a time. Fanning out a parent issue coordinates many such loops: the skill decides what is ready and verifies the results, while the host provides the agents and their isolated worktrees. Writing code, deployment, and unattended repetition belong to the surrounding Loop Engineering harness.
+
+Agents merge only `review:ai` pull requests, and only after the merge gate passes on the exact head commit. The skill doesn't count on branch protection or required checks, because private repositories on GitHub Free have neither. The gate is the only enforcement, so the merging agent checks every condition itself.
 
 The Claude Code plugin packages only the skill. It adds no hooks, agents, commands, or MCP servers, so installing it grants no new tool access.
 

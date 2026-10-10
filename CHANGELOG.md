@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Pull request review lanes (`references/pull-requests.md`). Every PR is labeled `review:human` or `review:ai`. Interface and UX changes, changes that aren't clearly mergeable, changes to repository conventions, and PRs from forks need a human reviewer, and agents never merge them.
+- A merge gate for `review:ai` PRs. The merging agent itself confirms that no reviewer's latest review requests changes, green CI on the head commit, a pre-commit review of every commit with no bypass in the commit record, evidence for every acceptance criterion, a passing rerun in a clean checkout, a final issue `State`, and `Closes owner/repo#N` in the PR body. It doesn't count on branch protection or required checks.
+- Merge rules: re-read the PR right before merging and stop unless it is still `review:ai` at the checked head SHA with no change requests and green CI, pass that SHA as `expectedHeadSha`, squash a single-issue PR, and use a merge commit for a PR that integrates several issues. After the merge, verify that the issues closed and reached the completed Status, then add the completion comment.
+- `review:human` and `review:ai` labels, a merge authority decision, and an uninitialized state for pull request review in the initialization baseline.
+- MCP patterns for labeling a PR with `issue_write`, reading its CI results, commits, and reviews, and merging it. `issue_read` can't resolve a PR number, so PR labels are read with `pull_request_read`.
+
+### Changed
+
+- Acceptance criteria evidence goes in an issue comment or a test report in the repository's docs.
+
 ## [1.2.1] - 2026-10-10
 
 ### Fixed

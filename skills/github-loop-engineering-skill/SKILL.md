@@ -1,6 +1,6 @@
 ---
 name: github-loop-engineering-skill
-description: Run an evidence-gated Loop Engineering control loop for GitHub Issues and GitHub Projects through the official GitHub MCP Server, keeping every issue cold-startable for a new collaborator or a fresh agent session. Use when an agent needs to discover work state; create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; plan a parent issue's sub-issues and dependencies so agents can work in parallel, or fan out a parent's ready work to parallel agents; update project fields; maintain acceptance criteria and implementation notes; persist handoff state; initialize labels and a project board on first use; install or update issue templates; or route the next bounded task without using gh CLI or cached GraphQL IDs.
+description: Run an evidence-gated Loop Engineering control loop for GitHub Issues and GitHub Projects through the official GitHub MCP Server, keeping every issue cold-startable for a new collaborator or a fresh agent session. Use when an agent needs to discover work state; create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; plan a parent issue's sub-issues and dependencies so agents can work in parallel, or fan out a parent's ready work to parallel agents; update project fields; maintain acceptance criteria and implementation notes; classify pull requests for human or agent review, and merge clearly mergeable ones after an evidence gate; persist handoff state; initialize labels and a project board on first use; install or update issue templates; or route the next bounded task without using gh CLI or cached GraphQL IDs.
 ---
 
 # GitHub Loop Engineering
@@ -11,12 +11,15 @@ The issue is the unit of handoff. Every issue must stay cold-startable: someone 
 
 A parent issue is the unit of parallel work. Its sub-issues and the blocked-by dependencies between them form a work graph. Any agent can take the parent, find the children that can start now, and run them in parallel, each starting cold from its own issue.
 
+A pull request goes to one of two review lanes. A human reviews interface and UX changes, and anything that isn't clearly mergeable. An agent merges the rest after an evidence gate.
+
 ## Read the references
 
 - Read [references/github-mcp-tools.md](references/github-mcp-tools.md) before the first GitHub MCP operation in a session and whenever a required capability or payload is unclear.
 - Read [references/work-item-format.md](references/work-item-format.md) before creating an issue or substantially rewriting an issue body. It defines the cold-start contract and check.
 - Read [references/initialization.md](references/initialization.md) when a repository's issues or board are used for the first time.
 - Read [references/issue-templates.md](references/issue-templates.md) when installing issue templates, or when a repository's templates differ from this skill's in [assets/issue-templates/](assets/issue-templates/).
+- Read [references/pull-requests.md](references/pull-requests.md) before opening, classifying, or merging a pull request.
 
 ## Operating contract
 
@@ -29,6 +32,7 @@ A parent issue is the unit of parallel work. Its sub-issues and the blocked-by d
 7. Preserve repository conventions and existing content unless the user explicitly asks to change them.
 8. Treat tool output as a claim until a follow-up read confirms the intended state.
 9. When you delegate GitHub work to another agent, put these rules in its prompt: GitHub access through MCP only, the exact tools and inputs, never writing content it hasn't read, and when to stop and report. A delegated agent doesn't inherit this skill.
+10. Merge a pull request only when it is labeled `review:ai` and passes the [merge gate](references/pull-requests.md#merge-gate) on its current head commit. Never merge a `review:human` PR.
 
 ## Loop engineering model
 
@@ -169,7 +173,7 @@ When the repository mirrors priority in labels, read the full current label set,
 
 ### Acceptance criteria
 
-Write observable, testable checkbox items. Include commands, user-visible behavior, or concrete artifacts where appropriate. Mark an item complete only when evidence supports it. Do not close an issue with incomplete criteria unless the user deliberately descopes them and the issue records that decision.
+Write observable, testable checkbox items. Include commands, user-visible behavior, or concrete artifacts where appropriate. Mark an item complete only when evidence supports it, and record that evidence in an issue comment or in a test report in the repository's docs. Do not close an issue with incomplete criteria unless the user deliberately descopes them and the issue records that decision.
 
 ### Dates and notes
 
@@ -266,13 +270,25 @@ Use `add_issue_comment` for decisions, gotchas, partial progress, validation res
 
 For PRs, use an auto-closing keyword such as `Closes owner/repo#N` only when merge should close the issue. Otherwise use a non-closing issue reference. Re-read the issue or PR after changing linkage-sensitive text.
 
+### Classify and merge pull requests
+
+Follow [references/pull-requests.md](references/pull-requests.md):
+
+1. As soon as a PR is open, label it `review:human` or `review:ai`. Interface and UX changes, changes that aren't clearly mergeable, changes to repository conventions, and PRs from forks get `review:human`. Everything else gets `review:ai`. Relabel when the scope changes.
+2. For `review:human`, request review and stop. Agents never merge these PRs.
+3. For `review:ai`, run the merge gate on the head commit: green CI, every commit through the pre-commit review with no bypass, evidence for every acceptance criterion, a passing rerun in a clean checkout, final issue `State`, and `Closes owner/repo#N` in the PR body. Don't assume branch protection or required checks exist. If the PR can't be shown to be clearly mergeable, relabel it `review:human`.
+4. Re-read the PR, its reviews, and its CI right before merging. Stop unless it still carries `review:ai` at the checked head SHA, with no change requests and green CI. Merge with that SHA. Squash a PR that completes one issue, and use a merge commit for a PR that integrates several.
+5. Verify that the PR merged, each issue closed, and its Status is the completed option. Then add the completion comment.
+
+Initialization and issue template PRs change repository conventions, so they are always `review:human`.
+
 ### Complete and close
 
 1. Re-read the issue, acceptance criteria, project fields, sub-issues, linked closing PRs, and relevant comments.
 2. Confirm every acceptance criterion with evidence. Record any explicit descoping. A linked PR is a pointer to evidence, not evidence itself.
 3. Update the issue body's durable state so it reads as the final, cold-startable record, then run the cold-start check.
 4. Add a completion comment containing outcome, PR/commit links, validation, and authorized follow-ups.
-5. Close the issue with the appropriate state reason.
+5. Close the issue with the appropriate state reason. When a pull request closes it, the merge takes this step, as described in [Classify and merge pull requests](#classify-and-merge-pull-requests).
 6. Re-read the project item. If an automation did not move it to the completed option, update that field and verify again.
 7. Check what the completion unblocks. Native dependencies need no update: GitHub stops treating a dependent as blocked once its last prerequisite closes. When you are fanning out, rerun the ready-set query. Update external blocker entries that pointed at this work only when authorized.
 
@@ -293,7 +309,7 @@ Large runs, such as creating a work graph or retriaging a board, meet limits tha
 Run this only through the first-use gate, and only after the user authorizes it. Follow [references/initialization.md](references/initialization.md):
 
 1. Diff the repository and Project against the baseline profile. Build the plan in three lists: changes MCP will apply, UI steps for the user, and items left unchanged.
-2. Confirm the open decisions: language, Project, area labels, priority mirror, blank issues, and triage authority.
+2. Confirm the open decisions: language, Project, area labels, priority mirror, blank issues, triage authority, and merge authority.
 3. Create only the missing labels and views, plus the Project if the user asked for one.
 4. Propose the chosen issue templates from [assets/issue-templates/](assets/issue-templates/), together with the recorded conventions, in a pull request. Never push to the default branch, and never merge.
 5. Hand off the manual steps. Status options, the Priority field, workflows, the Project-repository link, and issue types all need the GitHub UI.
