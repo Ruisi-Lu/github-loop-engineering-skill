@@ -26,7 +26,7 @@ that truly does not apply instead of leaving it empty.
 
 ## State
 
-<!-- Current progress with absolute dates. Update it whenever the Status changes. -->
+<!-- Current progress with absolute dates, and anything the work waits for. Update it as the work moves on. Don't repeat board fields such as Status or Priority; the board is their source of truth. -->
 
 Not started.
 
@@ -38,8 +38,10 @@ Not started.
 
 ## Pointers
 
-<!-- Clickable anchors: file paths, PRs or commits, docs, and commands to run. -->
+<!-- Clickable anchors: parent and prerequisite issues, file paths, PRs or commits, docs, and commands to run. Also record each prerequisite as a blocked-by relationship on GitHub. -->
 
+- Parent issue:
+- Prerequisites (blocked by):
 - Files:
 - Docs:
 - Commands:

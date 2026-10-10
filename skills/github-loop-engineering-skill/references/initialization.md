@@ -60,9 +60,9 @@ The Status field already exists on a new Project. Its options must match this li
 | Option | Color | Meaning |
 |:--|:--|:--|
 | `Triage` | Gray | Created by an agent or not yet reviewed. A human approves it into `Todo` or closes it. Agents never promote out of `Triage` on their own |
-| `Todo` | Green | Approved and ready to start |
+| `Todo` | Green | Approved and not started. It can still wait on prerequisite issues, which GitHub marks as blocked |
 | `In Progress` | Yellow | Being worked on |
-| `Blocked` | Red | Waiting on a dependency. The issue carries the `blocked` label and a `Blocked by` section |
+| `Blocked` | Red | Stopped by something outside the work graph. The issue carries the `blocked` label and a `Blocked by` section |
 | `Done` | Purple | Completed |
 
 ### Project Priority field
@@ -86,7 +86,7 @@ Create only the labels that are missing. Keep GitHub's default labels. Never ren
 | `priority:P0` | `B60205` | Mirror of Priority `P0`, when labels are the chosen mirror |
 | `priority:P1` | `FBCA04` | Mirror of Priority `P1` |
 | `priority:P2` | `BFDADC` | Mirror of Priority `P2` |
-| `blocked` | `B60205` | Blocked by a dependency. The body has a `Blocked by` section and Status is `Blocked` |
+| `blocked` | `B60205` | Blocked by something outside the work graph. The body has a `Blocked by` section and Status is `Blocked` |
 | `tech-debt` | `D93F0B` | Refactoring, cleanup, or missing tests |
 | `security` | `67060C` | Security issue or hardening |
 | `area:ci` | `D5E697` | CI, release, and deployment pipelines |
@@ -118,7 +118,8 @@ Configure these in the Project's **Workflows** page:
 Keep existing views. Add a view only when no view with that layout exists:
 
 - a board layout grouped by Status;
-- a table layout.
+- a table layout;
+- a table layout named `Ready` with the filter `status:Todo -is:blocked`, which lists the work that can start now.
 
 Show `Title`, `Assignees`, `Status`, `Priority`, `Linked pull requests`, and `Sub-issues progress`.
 
@@ -129,13 +130,13 @@ Install the chosen locale from this skill's `assets/issue-templates/<locale>/` i
 - remove each `type:` line if the repository doesn't support issue types;
 - set `blank_issues_enabled: true` in `config.yml` if the user chose to keep blank issues.
 
-The templates never assign anyone. Assignment is decided when work starts. They take effect only after they reach the default branch.
+The templates never assign anyone. Assignment is decided when work starts. They take effect only after they reach the default branch. After installation, this skill keeps them current; see [issue templates](issue-templates.md).
 
 ### Repository settings
 
 - Issues are enabled.
 - The Project is linked to the repository, so the repository's **Projects** tab lists it and auto-add can target it.
-- The resulting conventions are recorded in repository guidance: the Project owner, title, and number, the vocabulary above, the language, and the priority mirror. Record names, never IDs.
+- The resulting conventions are recorded in repository guidance: the Project owner, title, and number, the vocabulary above, the language, the priority mirror, and that the issue templates come from this skill in the chosen locale. Record names, never IDs.
 
 ## What MCP can apply
 

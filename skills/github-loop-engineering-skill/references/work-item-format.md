@@ -11,7 +11,7 @@ Follow repository issue templates and language conventions first. Use this forma
 - **Self-contained.** No references that only make sense inside a session or someone's head, such as "the bug from before" or "as discussed". Name the file, the issue, the commit, or the decision.
 - **Absolute dates.** Write `2026-07-17`, never "today" or "last week".
 - **Pointers are clickable.** Give file paths, issue and PR references, commit SHAs, docs, and exact commands.
-- **The body is a current-state snapshot.** Whenever Status changes, update `State` and the acceptance criteria to match the facts. Put the chronology in comments, not in the body.
+- **The body is a current-state snapshot.** When the work moves on, update `State` and the acceptance criteria to match the facts. Don't copy board fields such as Status or Priority into the body: the board is their source of truth, and a copy goes stale. Put the chronology in comments, not in the body.
 
 ## Cold-start check
 
@@ -21,7 +21,7 @@ Run this check before creating an issue, after each substantial body update, at 
 2. Are `Why`, `What`, `State`, `Acceptance criteria`, and `Pointers` all present, with content or an explicit `N/A`?
 3. Is every date absolute, and is every reference resolvable without chat history?
 4. Can each acceptance criterion be verified by a command, an observable behavior, or an artifact?
-5. Does `State` reflect the latest verified status, not the state when the issue was created?
+5. Does `State` reflect the latest verified progress, not the state when the issue was created, without restating board fields?
 
 If any answer is no, fix the body before continuing the transition.
 
@@ -44,7 +44,7 @@ The problem or goal and why it matters, in one or two sentences.
 
 ## State
 
-Current progress with absolute dates. For a new issue: `Not started.`
+Current progress with absolute dates, and anything the work waits for. For a new issue: `Not started.`
 
 ## Acceptance criteria
 
@@ -53,6 +53,8 @@ Current progress with absolute dates. For a new issue: `Not started.`
 
 ## Pointers
 
+- Parent: owner/repo#40
+- Prerequisites (blocked by): owner/repo#41, owner/repo#42
 - Files: path/to/file
 - PRs and commits: owner/repo#123, abc1234
 - Docs: docs/...
@@ -65,14 +67,26 @@ In a `zh-TW` repository, use the headings from the `zh-TW` templates: `背景 (W
 
 Make acceptance criteria independently verifiable. Avoid vague items such as "works correctly", "tests pass", or "handle edge cases" unless they name the expected behavior or test.
 
+List every prerequisite issue in `Pointers` and also record it as a native blocked-by dependency. The list keeps the body readable without the dependency view, and the dependency lets the Project tell ready work from waiting work.
+
+## Parent issue
+
+A parent issue is a container for work that can run in parallel. Nobody implements it directly. It uses the same sections:
+
+- `What` lists the children, one line each, and names the exit child when one proves the parent's done criteria end to end.
+- `State` says that progress is tracked by the sub-issues, plus anything that applies to the parent as a whole.
+- `Acceptance criteria` require every child to be closed and the parent's done criteria to hold.
+
+Each child must still pass the cold-start check on its own. Restate the context a child needs instead of sending the reader to the parent for it.
+
 ## Managed blocker section
 
-When blocked, add or update this section without rewriting unrelated body content:
+Use this section for a blocker outside the work graph, such as a pending decision, missing hardware or access, or another team. A prerequisite issue is a native blocked-by dependency listed in `Pointers`, not an entry here. When blocked, add or update this section without rewriting unrelated body content:
 
 ```markdown
 ## Blocked by
 
-- Blocker: owner/repo#123 or a precise external cause
+- Blocker: a precise external cause
 - Since: YYYY-MM-DD
 - Unblock condition: concrete event or evidence
 ```

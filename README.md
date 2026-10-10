@@ -37,6 +37,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 ## Why this skill
 
 - **Cold-startable:** every issue passes a cold-start check, so a new collaborator or a fresh agent session can act on it without chat history.
+- **Parallel by design:** a parent issue's sub-issues and blocked-by dependencies form a work graph. Any agent can take the parent, query the children that can start now, and hand them to parallel agents.
 - **Loop-native:** every mutation is one pass through discover, frame, act, verify, and persist.
 - **Evidence-gated:** acceptance criteria and current read-back state control lifecycle transitions.
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
@@ -50,14 +51,17 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 ## What it manages
 
 - first-use initialization of labels, issue templates, the Project board, and its automations;
+- issue templates that stay current with the skill after installation;
 - cold-startable issue creation, triage, assignment, priority, and status;
 - project item attachment and custom field updates;
-- sub-issue decomposition and hierarchy verification;
+- sub-issue decomposition into parallel work graphs, with dependencies and hierarchy verification;
+- fan-out of a parent issue's ready children to parallel agents;
 - blockers, implementation notes, and PR/commit references;
 - evidence-backed acceptance criteria;
+- bulk changes paced under GitHub's rate limits;
 - completion, follow-up routing, and human handoff.
 
-This is the lifecycle control and memory layer, not an autonomous scheduler or coding-agent runtime. It does not launch agents, run code, merge changes, or bypass a missing MCP capability. Initialization proposes issue templates through a pull request and leaves the merge to a human. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
+This is the lifecycle control and memory layer, not a coding-agent runtime. When a host can run agents in parallel, the skill decides which issues are ready, tells the host what to hand to each agent, and verifies every result on GitHub; the host launches the agents and their workspaces. The skill never runs code, merges changes, or bypasses a missing MCP capability. Initialization and template updates go through pull requests that a human merges. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
 
 ## Contents
 
@@ -67,6 +71,7 @@ This is the lifecycle control and memory layer, not an autonomous scheduler or c
 | `skills/github-loop-engineering-skill/references/github-mcp-tools.md` | Official GitHub MCP tool map and payload patterns |
 | `skills/github-loop-engineering-skill/references/work-item-format.md` | Cold-start contract and check, plus issue, blocker, note, and completion formats |
 | `skills/github-loop-engineering-skill/references/initialization.md` | First-use detection, authorization gate, and baseline for labels, board, automations, and templates |
+| `skills/github-loop-engineering-skill/references/issue-templates.md` | How the skill installs issue templates and keeps them current |
 | `skills/github-loop-engineering-skill/assets/issue-templates/` | Cold-start issue templates (`en`, `zh-TW`) that initialization installs into `.github/ISSUE_TEMPLATE/` |
 | `.claude-plugin/plugin.json` | Claude Code plugin manifest and release version |
 | `.claude-plugin/marketplace.json` | Single-plugin Claude Code marketplace catalog |
@@ -228,6 +233,14 @@ Use the GitHub Loop Engineering skill to close issue #42 only if every acceptanc
 criterion has current evidence, then synchronize and verify the project status.
 ```
 
+Work through a parent issue in parallel:
+
+```text
+Use the GitHub Loop Engineering skill to work through epic #40. Hand every child
+that can start now to its own agent in a separate worktree, verify each result on
+GitHub, and keep going until the epic is done or needs me.
+```
+
 Initialize a repository on first use:
 
 ```text
@@ -242,7 +255,7 @@ The skill follows repository instructions and existing project vocabulary. Ambig
 
 The skill targets the official GitHub MCP Server's documented tool surface. It never silently switches to a CLI or direct API. Native issue dependencies and arbitrary project configuration remain conditional on the tools exposed by the connected server.
 
-The skill completes one requested lifecycle operation or bounded recovery at a time. Scheduling, isolated worktrees, coding-agent execution, independent code evaluation, deployment, and unattended repetition belong to the surrounding Loop Engineering harness.
+Each agent completes one lifecycle operation or bounded recovery at a time. Fanning out a parent issue coordinates many such loops: the skill decides what is ready and verifies the results, while the host provides the agents and their isolated worktrees. Code evaluation, deployment, and unattended repetition belong to the surrounding Loop Engineering harness.
 
 The Claude Code plugin packages only the skill. It adds no hooks, agents, commands, or MCP servers, so installing it grants no new tool access.
 

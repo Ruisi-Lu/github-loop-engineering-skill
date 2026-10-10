@@ -4,6 +4,21 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- Parallel work graphs: rules for splitting a parent issue into container and leaf issues, sizing leaves for one agent pass, adding an exit child that proves the parent's done criteria, and adding blocked-by dependencies only between leaves.
+- A fan-out procedure that finds a parent's ready children, claims them, hands each to its own agent in an isolated workspace, verifies each result on GitHub, and hands out work as it becomes ready.
+- Project queries for work that can start now: `-is:blocked` and `parent-issue:` filters.
+- Issue template management (`references/issue-templates.md`): the skill's templates are the source of truth, and the agent proposes a pull request when a repository's installed templates fall behind.
+- Guidance for bulk changes: GitHub's secondary rate limits, batch field updates, chunked delegation, and a control query before trusting an empty filter result.
+- A `Ready` view in the initialization baseline, filtered to `status:Todo -is:blocked`.
+- A rule to repeat the MCP-only rule, exact tool inputs, and stop conditions when delegating GitHub work, because a delegated agent doesn't inherit the skill.
+
+### Changed
+
+- Waiting on another issue is recorded as a native blocked-by dependency and keeps the accepted status. `Blocked`, the `blocked` label, and the `Blocked by` section are for blockers outside the work graph.
+- Issue bodies no longer repeat board fields such as Status or Priority, and `Pointers` lists the parent and prerequisite issues. The `en` and `zh-TW` templates follow.
+
 ## [1.1.0] - 2026-09-29
 
 ### Added

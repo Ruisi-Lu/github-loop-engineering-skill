@@ -73,6 +73,9 @@ If a needed tool is absent, tell the user which toolset or write capability is m
 | Find Projects | `projects_list` | `list_projects` |
 | List project fields | `projects_list` | `list_project_fields` |
 | List project items | `projects_list` | `list_project_items` |
+| Find work that can start now | `projects_list` | `list_project_items` with a `query` such as `status:Todo -is:blocked` |
+| Find a parent's ready children | `projects_list` | `list_project_items` with `parent-issue:owner/repo#N` in the `query` |
+| Read many issues compactly | `list_issues` | `fields`, for example `["number", "labels"]` |
 | Read one project resource | `projects_get` | `get_project`, `get_project_field`, or `get_project_item` |
 | Add/update/delete project item | `projects_write` | `add_project_item`, `update_project_item`, or `delete_project_item` |
 | Set one field on many items | `projects_write` | `update_project_items`, up to 50 items per call |
@@ -198,13 +201,33 @@ When the same field and value apply to several items, use one `update_project_it
 }
 ```
 
-Each entry uses exactly one locator form. The server documents option-name resolution for single-item updates, so if a batch rejects an option name, use the option ID from a fresh `list_project_fields` read. A batch can partially succeed. Read back every item before you report the batch done.
+Each entry uses exactly one locator form. Option names have resolved in batches too, but the server documents them only for single-item updates. If a batch rejects an option name, use the option ID from a fresh `list_project_fields` read. A batch can partially succeed. Read back every item before you report the batch done.
 
 ### Verify project values
 
 Call `projects_list` with `method: "list_project_items"` and request the relevant `field_names`, for example `["Status", "Priority"]`. Without `field_names` or `fields`, the server can return only titles.
 
 Paginate and match the content by repository plus issue number. If the add/update response returned an item ID, `projects_get` with `get_project_item` can verify that exact item.
+
+To check many items at once, filter instead of listing everything. For example, `no:priority` must return nothing after every item got a Priority. First run a query that must match, such as `no:assignee` on unassigned work, so a filter that matches nothing because of a typo can't pass as proof.
+
+### Find work that can start now
+
+The Project filter `is:blocked` matches items with an open blocked-by dependency, so `-is:blocked` keeps only items whose prerequisites are all closed. `parent-issue:` limits the query to one parent's sub-issues:
+
+```json
+{
+  "method": "list_project_items",
+  "owner": "octo-org",
+  "owner_type": "org",
+  "project_number": 7,
+  "query": "parent-issue:octo-org/widgets#40 status:Todo -is:blocked",
+  "field_names": ["Status", "Priority"],
+  "perPage": 50
+}
+```
+
+Use the project's own option names in `status:`. `parent-issue:` matches direct sub-issues, so query each container in a deeper hierarchy. Order the result by Priority.
 
 ### Preserve labels during issue updates
 
