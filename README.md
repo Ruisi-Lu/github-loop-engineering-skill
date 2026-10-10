@@ -62,7 +62,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - bulk changes paced under GitHub's rate limits;
 - completion, follow-up routing, and human handoff.
 
-This is the lifecycle control and memory layer, not a coding-agent runtime. When a host can run agents in parallel, the skill decides which issues are ready, tells the host what to hand to each agent, and verifies every result on GitHub; the host launches the agents and their workspaces. The skill never runs code, merges changes, or bypasses a missing MCP capability. Initialization and template updates go through pull requests that a human merges. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
+This is the lifecycle control and memory layer, not a coding-agent runtime. When a host can run agents in parallel, the skill decides which issues are ready, tells the host what to hand to each agent, and verifies every result on GitHub; the host launches the agents and their workspaces. The skill never runs code or merges changes, and it bypasses a missing MCP capability only through the user-authorized fallbacks in the MCP reference. Initialization and template updates go through pull requests that a human merges. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
 
 ## Contents
 
@@ -254,7 +254,7 @@ The skill follows repository instructions and existing project vocabulary. Ambig
 
 ## Design boundaries
 
-The skill targets the official GitHub MCP Server's documented tool surface. It never silently switches to a CLI or direct API. Native issue dependencies and arbitrary project configuration remain conditional on the tools exposed by the connected server.
+The skill targets the official GitHub MCP Server's documented tool surface. It never silently switches to a CLI or direct API: it uses the GitHub CLI's API client only for native issue dependencies and milestones, which the server can't write yet, and only after the user authorizes it. Arbitrary project configuration remains conditional on the tools exposed by the connected server.
 
 Each agent completes one lifecycle operation or bounded recovery at a time. Fanning out a parent issue coordinates many such loops: the skill decides what is ready and verifies the results, while the host provides the agents and their isolated worktrees. Code evaluation, deployment, and unattended repetition belong to the surrounding Loop Engineering harness.
 
