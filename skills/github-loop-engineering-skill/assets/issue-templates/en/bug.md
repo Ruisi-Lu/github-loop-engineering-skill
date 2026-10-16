@@ -37,7 +37,7 @@ Report security vulnerabilities privately first if the repository has a security
 
 ## State
 
-<!-- Current progress with absolute dates, and anything the work waits for. Update it as the work moves on. Don't repeat board fields such as Status or Priority; the board is their source of truth. -->
+<!-- Current progress with absolute dates, and anything the work waits for. Update it as the work moves on. Don't repeat board fields such as Status or Priority; the board is their source of truth. When the work waits for a human review, say why it needs one and list what the reviewer must confirm. -->
 
 Not started.
 

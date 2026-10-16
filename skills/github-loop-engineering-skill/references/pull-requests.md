@@ -41,9 +41,10 @@ When in doubt, choose `review:human`. Reclassify when the scope changes. A `revi
 
 For a `review:human` PR, the agent opens the PR and requests review. It never merges the PR, and it doesn't relabel the PR `review:ai` to get around a human gate.
 
-1. Request the reviewers named in repository guidance, or ask the user who should review. Use `reviewers` on `create_pull_request` or `update_pull_request`.
-2. Answer review feedback with new commits on the PR branch, and keep the issue's `State` current.
-3. Leave the merge to the reviewer or another human. Once a human merges it, verify it as described in [After the merge](#after-the-merge).
+1. Write why the PR needs a human, naming the matching reason from [Classify](#classify), and list each point the reviewer must confirm, such as a deviation from an acceptance criterion, a product decision, or an assumption that wasn't tested. Put it in the PR body and in the issue's `State`, so a reviewer who opens either one knows what to judge. The label alone doesn't say why.
+2. Request the reviewers named in repository guidance, or ask the user who should review. Use `reviewers` on `create_pull_request` or `update_pull_request`.
+3. Answer review feedback with new commits on the PR branch, and keep the issue's `State` current.
+4. Leave the merge to the reviewer or another human. Once a human merges it, verify it as described in [After the merge](#after-the-merge).
 
 ## Merge gate
 

@@ -275,7 +275,7 @@ For PRs, use an auto-closing keyword such as `Closes owner/repo#N` only when mer
 Follow [references/pull-requests.md](references/pull-requests.md):
 
 1. As soon as a PR is open, label it `review:human` or `review:ai`. Interface and UX changes, changes that aren't clearly mergeable, changes to repository conventions, and PRs from forks get `review:human`. Everything else gets `review:ai`. Relabel when the scope changes.
-2. For `review:human`, request review and stop. Agents never merge these PRs.
+2. For `review:human`, write why the PR needs a human and what the reviewer must confirm in the PR body and the issue's `State`, then request review and stop. Agents never merge these PRs.
 3. For `review:ai`, run the merge gate on the head commit: green CI, every commit through the pre-commit review with no bypass, evidence for every acceptance criterion, a passing rerun in a clean checkout, final issue `State`, and `Closes owner/repo#N` in the PR body. Don't assume branch protection or required checks exist. If the PR can't be shown to be clearly mergeable, relabel it `review:human`.
 4. Re-read the PR, its reviews, and its CI right before merging. Stop unless it still carries `review:ai` at the checked head SHA, with no change requests and green CI. Merge with that SHA. Squash a PR that completes one issue, and use a merge commit for a PR that integrates several.
 5. Verify that the PR merged, each issue closed, and its Status is the completed option. Then add the completion comment.

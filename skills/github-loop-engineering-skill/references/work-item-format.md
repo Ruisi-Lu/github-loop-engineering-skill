@@ -21,7 +21,7 @@ Run this check before creating an issue, after each substantial body update, at 
 2. Are `Why`, `What`, `State`, `Acceptance criteria`, and `Pointers` all present, with content or an explicit `N/A`?
 3. Is every date absolute, and is every reference resolvable without chat history?
 4. Can each acceptance criterion be verified by a command, an observable behavior, or an artifact?
-5. Does `State` reflect the latest verified progress, not the state when the issue was created, without restating board fields?
+5. Does `State` reflect the latest verified progress, not the state when the issue was created, without restating board fields? If the work waits for a human review, does it say why and what the reviewer must confirm?
 
 If any answer is no, fix the body before continuing the transition.
 
@@ -44,7 +44,7 @@ The problem or goal and why it matters, in one or two sentences.
 
 ## State
 
-Current progress with absolute dates, and anything the work waits for. For a new issue: `Not started.`
+Current progress with absolute dates, and anything the work waits for. When it waits for a human review, say why the work needs one and list what the reviewer must confirm. For a new issue: `Not started.`
 
 ## Acceptance criteria
 

@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- A `review:human` PR states why it needs a human and lists what the reviewer must confirm, in the PR body and in the issue's `State`. The issue templates' `State` comment and the cold-start check ask for the same, because the label alone doesn't tell a reviewer what to judge.
+
 ## [1.3.0] - 2026-10-10
 
 ### Added
