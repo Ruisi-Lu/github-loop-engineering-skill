@@ -4,7 +4,9 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
-### Changed
+## [1.3.1] - 2026-10-16
+
+### Fixed
 
 - A `review:human` PR states why it needs a human and lists what the reviewer must confirm, in the PR body and in the issue's `State`. The issue templates' `State` comment and the cold-start check ask for the same, because the label alone doesn't tell a reviewer what to judge.
 
@@ -82,7 +84,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.3.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.3.1...HEAD
+[1.3.1]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.3.0...github-loop-engineering--v1.3.1
 [1.3.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.2.1...github-loop-engineering--v1.3.0
 [1.2.1]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.2.0...github-loop-engineering--v1.2.1
 [1.2.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.1.0...github-loop-engineering--v1.2.0
