@@ -20,6 +20,7 @@ A pull request goes to one of two review lanes. A human reviews interface and UX
 - Read [references/initialization.md](references/initialization.md) when a repository's issues or board are used for the first time.
 - Read [references/issue-templates.md](references/issue-templates.md) when installing issue templates, or when a repository's templates differ from this skill's in [assets/issue-templates/](assets/issue-templates/).
 - Read [references/pull-requests.md](references/pull-requests.md) before opening, classifying, or merging a pull request.
+- Read [references/fan-out.md](references/fan-out.md) before handing leaves to parallel agents, and when you resume a fan-out after an interruption.
 
 ## Operating contract
 
@@ -31,8 +32,9 @@ A pull request goes to one of two review lanes. A human reviews interface and UX
 6. Persist verified state, decisions, and remaining work in GitHub so another agent or human can resume cold. An issue that fails the cold-start check is not finished being written.
 7. Preserve repository conventions and existing content unless the user explicitly asks to change them.
 8. Treat tool output as a claim until a follow-up read confirms the intended state.
-9. When you delegate GitHub work to another agent, put these rules in its prompt: GitHub access through MCP only, the exact tools and inputs, never writing content it hasn't read, and when to stop and report. A delegated agent doesn't inherit this skill.
+9. When you delegate GitHub work to another agent, put these rules in its prompt: GitHub access through MCP only, the exact tools and inputs, which writes it may make itself, never writing content it hasn't read, and when to stop and report. A delegated agent doesn't inherit this skill, so also give it the tool notes it needs, such as reading a pull request's labels with `pull_request_read`.
 10. Merge a pull request only when it is labeled `review:ai` and passes the [merge gate](references/pull-requests.md#merge-gate) on its current head commit. Never merge a `review:human` PR.
+11. In a public repository, every issue, comment, pull request, commit, and CI log is published the moment it is written, and edit history keeps what a later edit removes. Never write secrets, internal hostnames or addresses, customer names, or personal data there. Read what a delegated agent prepared before it goes out.
 
 ## Loop engineering model
 
@@ -80,7 +82,7 @@ If no GitHub MCP server is connected, enter the bootstrap gate:
 
 Do not treat cloning the server repository as installation unless the host is also configured to launch the built server. If the environment cannot install or connect MCP servers, stop with the exact host-specific action or authentication step the user must complete.
 
-The official server's default toolsets omit `projects` and `labels`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client. The fallbacks under [Capability gaps](references/github-mcp-tools.md#capability-gaps) cover only operations the server doesn't offer at all.
+The official server's default toolsets omit `projects`, `labels`, and `actions`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client. The fallbacks under [Capability gaps](references/github-mcp-tools.md#capability-gaps) cover only operations the server doesn't offer at all.
 
 Before the first write:
 
@@ -118,7 +120,7 @@ Use explicit repository instructions over the defaults below. When no policy exi
 - Reuse existing labels. Create or rename labels only when the user requests it, standing repository policy clearly authorizes it, or an authorized initialization adds them.
 - Leave assignees empty on creation unless the user names someone. Decide assignment when work starts.
 - Use issue types only when supported; do not emulate them with new labels unless repository policy says to.
-- Treat agent-discovered follow-up work as a proposal. Create it only when the user requested discovery-and-creation or the repository has a standing intake policy.
+- Treat agent-discovered follow-up work as a proposal. Create it only when the user requested discovery-and-creation or the repository has a standing intake policy. Give a follow-up you create the milestone or parent it belongs to, and don't add it to the current run unless it belongs there. A finished leaf often turns up one or two follow-ups, and a run that takes on all of them doesn't finish.
 
 ### 3. Act once
 
@@ -174,6 +176,10 @@ When the repository mirrors priority in labels, read the full current label set,
 ### Acceptance criteria
 
 Write observable, testable checkbox items. Include commands, user-visible behavior, or concrete artifacts where appropriate. Mark an item complete only when evidence supports it, and record that evidence in an issue comment or in a test report in the repository's docs. Do not close an issue with incomplete criteria unless the user deliberately descopes them and the issue records that decision.
+
+A short answer that skips a criterion, such as "don't test that", can mean "not now", for example because the hardware or access doesn't exist yet, rather than "never". Record the criterion as pending, with the reason and the condition for doing it, unless the user says to drop it. When the answer could mean either, ask in one line.
+
+A claim that something didn't happen, such as a scheduled run that never started, is evidence only once it can no longer happen. Scheduled workflow runs can start hours late.
 
 ### Dates and notes
 
@@ -245,9 +251,12 @@ Use this when you are asked to work through a parent issue and the host can run 
 1. Read the parent, its sub-issues at every level, and their project items.
 2. Find the ready set: open leaves in the accepted status that nothing blocks. A Project query returns it for each container, for example `parent-issue:owner/repo#40 status:Todo -is:blocked` with the project's own option names. Order the set by Priority.
 3. Claim each leaf before handing it out: move it to the active option and re-read it. Skip a leaf that someone else already started. Move the parent to the active option with its first leaf. Settle [assignment](#assignment-when-work-starts) once for the whole fan-out instead of asking for each leaf.
-4. Give each claimed leaf to its own agent in an isolated workspace, such as a git worktree. The prompt names the repository and the issue number, tells the agent to run this skill's loop on that issue only, and repeats the rules it doesn't inherit: GitHub access through MCP only, the repository's guidance, and when to stop and report.
-5. When an agent reports back, verify its leaf on GitHub, not from the report. Then rerun the ready-set query, because a closed leaf can unblock others, and hand out what became ready.
-6. Stop when every child is closed, the same leaf fails twice, or a step needs a human. Close the parent through its completion ritual, or leave a handoff comment on the parent that lists each child's state.
+4. Give each claimed leaf to its own agent in an isolated workspace, such as a git worktree. The prompt names the repository and the issue number, tells the agent to run this skill's loop on that issue only, and points it at a written brief that repeats the rules it doesn't inherit: GitHub access through MCP only, which writes it may make, the repository's guidance, and when to stop and report. [references/fan-out.md](references/fan-out.md) describes the brief, the split of writes, and the report to ask for.
+5. When an agent reports back, verify its leaf on GitHub and its change in git, not from the report. Before a leaf with security or design risk goes out, have a second agent try to break it, as described in [references/fan-out.md](references/fan-out.md#verify-risky-leaves-independently). Then rerun the ready-set query, because a closed leaf can unblock others, and hand out what became ready.
+6. Merge the leaves' pull requests one at a time, as described in [Classify and merge pull requests](#classify-and-merge-pull-requests): you merge the `review:ai` ones, and humans merge the `review:human` ones. Leaf agents never merge, because every merge moves the base branch under every other open pull request.
+7. Stop when every child is closed, the same leaf fails twice, or a step needs a human. Close the parent through its completion ritual, or leave a handoff comment on the parent that lists each child's state.
+
+After an interruption, such as a usage limit or a context reset, rebuild the state from GitHub before you resume any agent, as described in [references/fan-out.md](references/fan-out.md#resume-after-an-interruption).
 
 ### Mark or clear a blocker
 
@@ -264,6 +273,8 @@ A wait on another issue and a blocker outside the work graph are recorded differ
 
 When unblocking, remove only the resolved blocker entry and blocked label, restore the appropriate workflow status, add the resolution date, and verify no other blocker remains.
 
+**Pending decision.** A decision only the user can make is an external blocker on each issue that waits for it. Don't collect decisions in a parent issue's body for the user to find there, because they wait for days. Ask the user directly, several at a time, with the host's question tool when it has one. Make each question self-contained: the issues it blocks, what each option does and costs, and your recommendation as the first option. Read a free-text answer literally, and treat a multiple-choice question answered with nothing selected as "change none of these". Record each answer in the issues it affects, then unblock them.
+
 ### Add implementation notes and links
 
 Use `add_issue_comment` for decisions, gotchas, partial progress, validation results, and commit references. Keep comments concise and append-only.
@@ -276,9 +287,9 @@ Follow [references/pull-requests.md](references/pull-requests.md):
 
 1. As soon as a PR is open, label it `review:human` or `review:ai`. Interface and UX changes, changes that aren't clearly mergeable, changes to repository conventions, and PRs from forks get `review:human`. Everything else gets `review:ai`. Relabel when the scope changes.
 2. For `review:human`, write why the PR needs a human and what the reviewer must confirm in the PR body and the issue's `State`, then request review and stop. Agents never merge these PRs.
-3. For `review:ai`, run the merge gate on the head commit: green CI, every commit through the pre-commit review with no bypass, evidence for every acceptance criterion, a passing rerun in a clean checkout, final issue `State`, and `Closes owner/repo#N` in the PR body. Don't assume branch protection or required checks exist. If the PR can't be shown to be clearly mergeable, relabel it `review:human`.
-4. Re-read the PR, its reviews, and its CI right before merging. Stop unless it still carries `review:ai` at the checked head SHA, with no change requests and green CI. Merge with that SHA. Squash a PR that completes one issue, and use a merge commit for a PR that integrates several.
-5. Verify that the PR merged, each issue closed, and its Status is the completed option. Then add the completion comment.
+3. For `review:ai`, run the merge gate on the head commit: green CI, every commit through the pre-commit review with no bypass, evidence for every acceptance criterion, a passing rerun in a clean checkout, a head that contains the base branch's tip so that CI tested what will land, final issue `State`, and `Closes owner/repo#N` in the PR body. Don't assume branch protection or required checks exist. If the PR can't be shown to be clearly mergeable, relabel it `review:human`.
+4. Re-read the PR, its reviews, its CI, and the base branch right before merging. Stop unless it still carries `review:ai` at the checked head SHA, with no change requests, green CI, and the base's tip still in the head. Merge with that SHA. Squash a PR that completes one issue, and use a merge commit for a PR that integrates several. When several PRs are ready, merge them one at a time, starting with the one that touches the most widely shared files.
+5. Verify that the PR merged, the merge commit's tree equals the tree of the head you checked, each issue closed, and its Status is the completed option. Then add the completion comment.
 
 Initialization and issue template PRs change repository conventions, so they are always `review:human`.
 
@@ -328,4 +339,7 @@ This skill's issue templates are the source of truth for every repository that i
 - On partial failure, report confirmed completed steps and the exact remaining mutation.
 - On a repeated unchanged failure, stop and persist the attempted action, error, and required new evidence or authority.
 - On a secondary rate limit, stop writing, wait at least as long as the response asks, and resume from a fresh read of the items still pending.
+- On a timeout or a dropped connection during a write, the write may have applied anyway. Read before retrying: look for the issue or pull request by title or head branch, or re-read the field. Retry only what is missing, because a blind retry of a create makes a duplicate.
+- When the host's permission system denies an action, treat the denial as a human gate. Don't retry the action through another tool or another agent. Report it and ask the user.
+- When a read returns more than the host accepts, such as a large diff or a parent's sub-issues with full bodies, narrow it: a smaller page, only the fields you compare, a Project query with `field_names`, or the diff from a local fetch of the pull request's head.
 - On concurrent edits, re-read and merge intentionally; never overwrite newer user content with an older snapshot.

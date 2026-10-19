@@ -37,14 +37,14 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 ## Why this skill
 
 - **Cold-startable:** every issue passes a cold-start check, so a new collaborator or a fresh agent session can act on it without chat history.
-- **Parallel by design:** a parent issue's sub-issues and blocked-by dependencies form a work graph. Any agent can take the parent, query the children that can start now, and hand them to parallel agents.
+- **Parallel by design:** a parent issue's sub-issues and blocked-by dependencies form a work graph. Any agent can take the parent, query the children that can start now, and hand them to parallel agents. The coordinating agent gives every agent the same written brief, keeps pushes and merges to itself, reviews what goes out, and has risky leaves attacked by an independent verifier.
 - **Loop-native:** every mutation is one pass through discover, frame, act, verify, and persist.
 - **Evidence-gated:** acceptance criteria and current read-back state control lifecycle transitions.
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
 - **Assignment at start:** issues are created unassigned. The agent asks whether to assign the user when work starts, unless the request or repository policy already decides.
 - **Agent-first triage:** agents set Priority when they create an issue and move accepted work out of intake by best judgment, unless repository guidance reserves triage for humans.
-- **Two review lanes:** every pull request is labeled `review:human` or `review:ai`. A human reviews interface and UX changes and anything that isn't clearly mergeable. An agent merges the rest only after green CI, an audited pre-commit review of every commit, evidence for every acceptance criterion, and its own rerun of the checks in a clean checkout.
-- **MCP-first:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL, except user-authorized fallbacks for the two writes the official server lacks: native issue dependencies and milestones.
+- **Two review lanes:** every pull request is labeled `review:human` or `review:ai`. A human reviews interface and UX changes and anything that isn't clearly mergeable. An agent merges the rest only after green CI, an audited pre-commit review of every commit, evidence for every acceptance criterion, its own rerun of the checks in a clean checkout, and a head that contains the base branch's tip, so CI tested what lands.
+- **MCP-first:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL, except user-authorized fallbacks for the two writes the official server lacks, native issue dependencies and milestones, and for reading check runs when the token can't.
 - **Host-portable:** the skill is standard Agent Skills content with no vendor-specific agent metadata. The Claude Code plugin is an optional wrapper that installs the same files unchanged.
 - **Repository-agnostic:** no hard-coded owner, project number, field ID, or option ID. Existing repository vocabulary always wins. A baseline vocabulary applies only when the user authorizes first-use initialization.
 - **Recoverable:** partial failures trigger a fresh read and bounded recovery, never blind replay.
@@ -57,8 +57,8 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - cold-startable issue creation, triage, assignment, priority, and status;
 - project item attachment and custom field updates;
 - sub-issue decomposition into parallel work graphs, with dependencies and hierarchy verification;
-- fan-out of a parent issue's ready children to parallel agents;
-- blockers, implementation notes, and PR/commit references;
+- fan-out of a parent issue's ready children to parallel agents: the brief, the split of GitHub writes, agent reports, independent verification, and resuming after an interruption;
+- blockers, pending decisions asked in batches, implementation notes, and PR/commit references;
 - pull request review lanes, and an evidence-gated merge for clearly mergeable pull requests;
 - evidence-backed acceptance criteria;
 - bulk changes paced under GitHub's rate limits;
@@ -75,7 +75,8 @@ This is the lifecycle control and memory layer, not a coding-agent runtime. When
 | `skills/github-loop-engineering-skill/references/work-item-format.md` | Cold-start contract and check, plus issue, blocker, note, and completion formats |
 | `skills/github-loop-engineering-skill/references/initialization.md` | First-use detection, authorization gate, and baseline for labels, board, automations, and templates |
 | `skills/github-loop-engineering-skill/references/issue-templates.md` | How the skill installs issue templates and keeps them current |
-| `skills/github-loop-engineering-skill/references/pull-requests.md` | Pull request review labels, classification, merge gate, and post-merge checks |
+| `skills/github-loop-engineering-skill/references/pull-requests.md` | Opening pull requests, review labels, classification, merge gate, and post-merge checks |
+| `skills/github-loop-engineering-skill/references/fan-out.md` | Coordinating parallel agents: write split, brief, report, review, independent verification, resume, and cleanup |
 | `skills/github-loop-engineering-skill/assets/issue-templates/` | Cold-start issue templates (`en`, `zh-TW`) that initialization installs into `.github/ISSUE_TEMPLATE/` |
 | `.claude-plugin/plugin.json` | Claude Code plugin manifest and release version |
 | `.claude-plugin/marketplace.json` | Single-plugin Claude Code marketplace catalog |
@@ -105,7 +106,7 @@ Enable at least the `issues` and `projects` toolsets. `context`, `repos`, `label
 context,repos,issues,labels,projects,pull_requests
 ```
 
-The server's default toolsets (`context`, `issues`, `pull_requests`, `repos`, `users`) omit `projects` and `labels`, so you must enable them explicitly for board operations. The remote server takes toolsets from the `X-MCP-Toolsets` header. The local server reads the `--toolsets` flag or the `GITHUB_TOOLSETS` variable. Project writes also require project-write authorization. Follow the official server's [configuration guide](https://github.com/github/github-mcp-server/blob/main/docs/server-configuration.md) for the detected MCP host.
+The server's default toolsets (`context`, `issues`, `pull_requests`, `repos`, `users`) omit `projects` and `labels`, so you must enable them explicitly for board operations. Add `actions` when your token can't read check runs, as has been seen with fine-grained personal access tokens: the merge gate then reads CI from workflow runs and jobs. The remote server takes toolsets from the `X-MCP-Toolsets` header. The local server reads the `--toolsets` flag or the `GITHUB_TOOLSETS` variable. Project writes also require project-write authorization. Follow the official server's [configuration guide](https://github.com/github/github-mcp-server/blob/main/docs/server-configuration.md) for the detected MCP host.
 
 After setup, verify that identity, issue reads, Project reads, and the requested write tools are actually available. Only then resume the skill at Discover.
 
@@ -265,7 +266,7 @@ The skill follows repository instructions and existing project vocabulary. Ambig
 
 ## Design boundaries
 
-The skill targets the official GitHub MCP Server's documented tool surface. It never silently switches to a CLI or direct API: it uses the GitHub CLI's API client only for native issue dependencies and milestones, which the server can't write yet, and only after the user authorizes it. Arbitrary project configuration remains conditional on the tools exposed by the connected server.
+The skill targets the official GitHub MCP Server's documented tool surface. It never silently switches to a CLI or direct API: it uses the GitHub CLI's API client only for native issue dependencies and milestones, which the server can't write yet, and for check runs that the token can't read through the server, and only after the user authorizes it. Arbitrary project configuration remains conditional on the tools exposed by the connected server.
 
 Each agent completes one lifecycle operation or bounded recovery at a time. Fanning out a parent issue coordinates many such loops: the skill decides what is ready and verifies the results, while the host provides the agents and their isolated worktrees. Writing code, deployment, and unattended repetition belong to the surrounding Loop Engineering harness.
 

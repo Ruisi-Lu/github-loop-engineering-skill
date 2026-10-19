@@ -36,7 +36,7 @@ The official server's configuration guide is authoritative when these mechanisms
 
 ## Required toolsets and access
 
-The official server's default toolsets are `context`, `issues`, `pull_requests`, `repos`, and `users`. They omit `projects` and `labels`, so board operations fail until those toolsets are requested explicitly. Enable the relevant toolsets for the workflow:
+The official server's default toolsets are `context`, `issues`, `pull_requests`, `repos`, and `users`. They omit `projects`, `labels`, and `actions`, so board operations and reads of workflow runs fail until those toolsets are requested explicitly. Enable the relevant toolsets for the workflow:
 
 | Toolset | Use |
 |:--|:--|
@@ -46,6 +46,7 @@ The official server's default toolsets are `context`, `issues`, `pull_requests`,
 | `labels` | List or maintain repository labels |
 | `projects` | Discover Projects, add items, and update fields |
 | `pull_requests` | Read, review, and merge pull requests, and update their linkage |
+| `actions` | Read workflow runs, jobs, and job logs when the token can't read check runs. Use it only to read: the loop doesn't trigger or rerun workflows |
 
 Project reads require project-read access; project writes require project-write access. Issue and repository operations require access to the target repository. A server configured in read-only mode will not expose write tools even when a write toolset is requested.
 
@@ -85,6 +86,9 @@ If a needed tool is absent, tell the user which toolset or write capability is m
 | Read a PR's labels | `pull_request_read` | `get`; `issue_read` can't resolve a PR number |
 | Label a PR | `issue_write` | `update` with the PR number and the complete label set |
 | Read a PR's CI results | `pull_request_read` | `get_check_runs` and `get_status` |
+| Read a workflow's runs | `actions_list` | `list_workflow_runs` with the workflow file as `resource_id`; match each run's head SHA |
+| Read a run's jobs | `actions_list` | `list_workflow_jobs` with the run ID as `resource_id` |
+| Read failed jobs' logs | `get_job_logs` | `run_id` with `failed_only` |
 | Read a PR's commits | `pull_request_read` | `get_commits` |
 | Read a PR's reviews | `pull_request_read` | `get_reviews` |
 | Request reviewers | `create_pull_request` or `update_pull_request` | `reviewers` |
@@ -93,6 +97,8 @@ If a needed tool is absent, tell the user which toolset or write capability is m
 | Propose file changes | `create_branch`, `push_files`, `create_pull_request` | a new branch, one commit, and a PR against the default branch |
 
 Pagination parameter names differ by tool. Issue and project list tools currently use `perPage`, and project lists return a cursor for `after`. Follow the connected schema instead of these examples.
+
+Some reads can return more than a host accepts in one result: `get_files` and `get_diff` on a large pull request, `get_sub_issues` on a parent with many children, because it returns full bodies, and `get_file_contents` on a large file. Use a smaller `perPage`, read only the fields you compare, such as `list_project_items` with `field_names` and a `parent-issue:` query, or read the diff from a local fetch of the pull request's head.
 
 Use `projects_write` with `create_project` only when the user explicitly requests a new project. An empty project may still need field and workflow configuration that the MCP server cannot fully create. Use project views, iteration fields, and `create_project_status_update` only when the user or repository policy asks for them. They are project configuration or reporting, not ordinary work-item transitions.
 
@@ -410,9 +416,30 @@ A pull request is also an issue, so `issue_write` sets its labels. `create_pull_
 
 To move a PR to the other lane, drop the old review label and keep every unrelated label. Re-read the PR's labels afterwards.
 
+### Read CI results
+
+Read the head commit's check runs and commit statuses with `pull_request_read`:
+
+```json
+{
+  "method": "get_check_runs",
+  "owner": "octo-org",
+  "repo": "widgets",
+  "pullNumber": 128
+}
+```
+
+A token without access to checks gets `403 Resource not accessible by personal access token`, which has been seen with fine-grained personal access tokens. Then read GitHub Actions results through the `actions` toolset, if the server exposes it and the token can read Actions:
+
+1. `actions_list` with `method: "list_workflow_runs"` and the workflow file as `resource_id` lists that workflow's runs. Keep the runs whose head SHA is the PR's head commit and whose event is `pull_request`. The connected schema says which filters `workflow_runs_filter` accepts.
+2. `actions_list` with `method: "list_workflow_jobs"` and a run ID as `resource_id` lists the run's jobs and their conclusions.
+3. `get_job_logs` with `run_id` and `failed_only: true` returns the logs of the failed jobs, for whoever fixes them.
+
+Count a job as passed only when it finished with success or its own conditions skipped it. Don't infer CI from the PR's `mergeable_state`. GitHub computes it in the background, it also reflects reviews and branch rules, and it doesn't name a failing check.
+
 ### Merge a pull request
 
-Merge only after the merge gate in the [pull request reference](pull-requests.md#merge-gate) passes, and after fresh `pull_request_read` reads show the PR still labeled `review:ai` at the same head SHA, with no change requests and green CI. Pass that SHA:
+Merge only after the merge gate in the [pull request reference](pull-requests.md#merge-gate) passes, and after fresh `pull_request_read` reads show the PR still labeled `review:ai` at the same head SHA, with no change requests and green CI, and a fresh fetch shows the head still contains the base branch's tip. Pass that SHA:
 
 ```json
 {
@@ -431,7 +458,9 @@ Use `merge` instead of `squash` for a PR that integrates several issues. If the 
 
 The official server can't yet write native issue dependencies or create milestones. Prefer an MCP tool for either as soon as the connected schema exposes one.
 
-Until then, each gap has one fallback through the GitHub CLI's authenticated API client. Use it only after the user explicitly authorizes that operation for the repository, and record a standing authorization in repository guidance so later sessions don't ask again. Nothing else goes through the CLI:
+Some tokens also can't read check runs through the server, as described in [Read CI results](#read-ci-results). Prefer the `actions` toolset or a token with access to checks.
+
+Each of these gaps has one fallback through the GitHub CLI's authenticated API client. Use it only after the user explicitly authorizes that operation for the repository, and record a standing authorization in repository guidance so later sessions don't ask again. Nothing else goes through the CLI:
 
 | Operation | Request |
 |:--|:--|
@@ -439,9 +468,10 @@ Until then, each gap has one fallback through the GitHub CLI's authenticated API
 | Add a prerequisite | `gh api -X POST repos/{owner}/{repo}/issues/{number}/dependencies/blocked_by -F issue_id={id}` |
 | Remove a prerequisite | `gh api -X DELETE repos/{owner}/{repo}/issues/{number}/dependencies/blocked_by/{id}` |
 | Create a milestone | `gh api -X POST repos/{owner}/{repo}/milestones -f title={title} -f description={description}` |
+| Read a commit's check runs, only when the token can't read them through the server | `gh api repos/{owner}/{repo}/commits/{sha}/check-runs` |
 
-`{number}` is the waiting issue's number. `{id}` is the prerequisite's numeric database ID from `issue_read`, not its issue number. Each write counts against the secondary rate limits. Read the list back after writing.
+`{number}` is the waiting issue's number. `{id}` is the prerequisite's numeric database ID from `issue_read`, not its issue number. `{sha}` is the PR's head commit. Each write counts against the secondary rate limits. Read the list back after writing.
 
-Without authorization, record the prerequisite in the waiting issue's `Pointers` and disclose that the native relation remains unchanged. Do not route any other operation through direct HTTP, a CLI, or GraphQL.
+Without authorization, record the prerequisite in the waiting issue's `Pointers` and disclose that the native relation remains unchanged. A CI result that neither the server nor an authorized read can provide fails the merge gate's CI condition. Do not route any other operation through direct HTTP, a CLI, or GraphQL.
 
 Similarly, do not assume the MCP server can create arbitrary project fields, configure project workflows, or edit draft cards. Scope setup requests to tools actually exposed by the connected server. The current surface can't add single-select fields or options, configure or read project workflows, link a Project to a repository, or manage issue types and issue fields. During initialization, hand those steps to the user as exact UI instructions.

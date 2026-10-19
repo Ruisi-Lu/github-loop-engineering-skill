@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A reference for coordinating parallel agents (`references/fan-out.md`): which GitHub writes stay with the coordinator, one written brief for every agent, the report to ask for, review before anything is pushed, independent verification of risky leaves, resuming after a usage limit or a context reset, a local run log, and cleanup.
+- An `Open` section for pull requests: run the checks before pushing instead of using CI as a debugger, bring in the base branch with a merge rather than a rebase, scan both the branch's commits and its final tree for secrets, check text for a public repository, and write a body that a reviewer can judge without the conversation.
+- A merge gate condition that CI tested what will land: the head must contain the base branch's tip, and after the merge the merge commit's tree must equal the merged head's tree. Ready pull requests merge one at a time, starting with the one that touches the most widely shared files.
+- Reading CI when `get_check_runs` answers 403, as it has for fine-grained personal access tokens: workflow runs, jobs, and failed job logs through the `actions` toolset, or a user-authorized `gh api` read of the check runs. A PR's `mergeable_state` isn't CI evidence.
+- Pending decisions are external blockers that the agent asks the user about directly, in self-contained batches with its recommendation first, instead of collecting them in a parent issue's body. Each answer is recorded in the issues it affects.
+- Failure handling for a write that times out (read before retrying, so a create isn't duplicated), an action the host denies (a human gate, never retried through another tool or agent), and a read too large for the host.
+- An operating rule for public repositories: no secrets, internal hostnames or addresses, customer names, or personal data in issues, comments, pull requests, or commits, and a delegated agent's text is read before it goes out.
+
+### Changed
+
+- Delegation prompts say which writes the agent may make itself and include the tool notes it needs.
+- A follow-up issue gets its milestone or parent when it is created, and it joins the current run only when it belongs there.
+- A criterion the user skips is recorded as pending, with its reason, unless the user drops it. A claim that something didn't happen counts as evidence only once it can no longer happen.
+- When the reviewer of a `review:human` PR is also its author, because the agent works with the reviewer's token, the agent assigns the PR to them instead of requesting a review that GitHub won't let them give.
+
 ## [1.3.1] - 2026-10-16
 
 ### Fixed
