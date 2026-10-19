@@ -439,7 +439,7 @@ Count a job as passed only when it finished with success or its own conditions s
 
 ### Merge a pull request
 
-Merge only after the merge gate in the [pull request reference](pull-requests.md#merge-gate) passes, and after fresh `pull_request_read` reads show the PR still labeled `review:ai` at the same head SHA, with no change requests and green CI, and a fresh fetch shows the head still contains the base branch's tip. Pass that SHA:
+Merge a `review:ai` PR only after the merge gate in the [pull request reference](pull-requests.md#merge-gate) passes, and a `review:human` PR only after a human approved its head commit for merging, as described in [Human review](pull-requests.md#human-review). Fresh `pull_request_read` reads must show the same head SHA, no change requests, and green CI, and a fresh fetch must show that the head still contains the base branch's tip. Pass that SHA:
 
 ```json
 {

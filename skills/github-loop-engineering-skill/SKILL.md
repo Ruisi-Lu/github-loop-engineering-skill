@@ -11,7 +11,7 @@ The issue is the unit of handoff. Every issue must stay cold-startable: someone 
 
 A parent issue is the unit of parallel work. Its sub-issues and the blocked-by dependencies between them form a work graph. Any agent can take the parent, find the children that can start now, and run them in parallel, each starting cold from its own issue.
 
-A pull request goes to one of two review lanes. A human reviews interface and UX changes, and anything that isn't clearly mergeable. An agent merges the rest after an evidence gate.
+A pull request goes to one of two review lanes. A human reviews interface and UX changes, and anything that isn't clearly mergeable, and an agent merges such a PR only after the human approves it. An agent merges the rest after an evidence gate.
 
 ## Read the references
 
@@ -33,7 +33,7 @@ A pull request goes to one of two review lanes. A human reviews interface and UX
 7. Preserve repository conventions and existing content unless the user explicitly asks to change them.
 8. Treat tool output as a claim until a follow-up read confirms the intended state.
 9. When you delegate GitHub work to another agent, put these rules in its prompt: GitHub access through MCP only, the exact tools and inputs, which writes it may make itself, never writing content it hasn't read, and when to stop and report. A delegated agent doesn't inherit this skill, so also give it the tool notes it needs, such as reading a pull request's labels with `pull_request_read`.
-10. Merge a pull request only when it is labeled `review:ai` and passes the [merge gate](references/pull-requests.md#merge-gate) on its current head commit. Never merge a `review:human` PR.
+10. Merge a `review:ai` pull request only when it passes the [merge gate](references/pull-requests.md#merge-gate) on its current head commit. Merge a `review:human` pull request only after a human approved its current head commit for merging, as described in [Human review](references/pull-requests.md#human-review). Never merge one on your own judgment.
 11. In a public repository, every issue, comment, pull request, commit, and CI log is published the moment it is written, and edit history keeps what a later edit removes. Never write secrets, internal hostnames or addresses, customer names, or personal data there. Read what a delegated agent prepared before it goes out.
 
 ## Loop engineering model
@@ -253,7 +253,7 @@ Use this when you are asked to work through a parent issue and the host can run 
 3. Claim each leaf before handing it out: move it to the active option and re-read it. Skip a leaf that someone else already started. Move the parent to the active option with its first leaf. Settle [assignment](#assignment-when-work-starts) once for the whole fan-out instead of asking for each leaf.
 4. Give each claimed leaf to its own agent in an isolated workspace, such as a git worktree. The prompt names the repository and the issue number, tells the agent to run this skill's loop on that issue only, and points it at a written brief that repeats the rules it doesn't inherit: GitHub access through MCP only, which writes it may make, the repository's guidance, and when to stop and report. [references/fan-out.md](references/fan-out.md) describes the brief, the split of writes, and the report to ask for.
 5. When an agent reports back, verify its leaf on GitHub and its change in git, not from the report. Before a leaf with security or design risk goes out, have a second agent try to break it, as described in [references/fan-out.md](references/fan-out.md#verify-risky-leaves-independently). Then rerun the ready-set query, because a closed leaf can unblock others, and hand out what became ready.
-6. Merge the leaves' pull requests one at a time, as described in [Classify and merge pull requests](#classify-and-merge-pull-requests): you merge the `review:ai` ones, and humans merge the `review:human` ones. Leaf agents never merge, because every merge moves the base branch under every other open pull request.
+6. Merge the leaves' pull requests one at a time, as described in [Classify and merge pull requests](#classify-and-merge-pull-requests): you merge the `review:ai` ones, and the `review:human` ones only after a human approves them. Leaf agents never merge, because every merge moves the base branch under every other open pull request.
 7. Stop when every child is closed, the same leaf fails twice, or a step needs a human. Close the parent through its completion ritual, or leave a handoff comment on the parent that lists each child's state.
 
 After an interruption, such as a usage limit or a context reset, rebuild the state from GitHub before you resume any agent, as described in [references/fan-out.md](references/fan-out.md#resume-after-an-interruption).
@@ -286,9 +286,9 @@ For PRs, use an auto-closing keyword such as `Closes owner/repo#N` only when mer
 Follow [references/pull-requests.md](references/pull-requests.md):
 
 1. As soon as a PR is open, label it `review:human` or `review:ai`. Interface and UX changes, changes that aren't clearly mergeable, changes to repository conventions, and PRs from forks get `review:human`. Everything else gets `review:ai`. Relabel when the scope changes.
-2. For `review:human`, write why the PR needs a human and what the reviewer must confirm in the PR body and the issue's `State`, then request review and stop. Agents never merge these PRs.
+2. For `review:human`, write why the PR needs a human and what the reviewer must confirm in the PR body and the issue's `State`, then request review and stop. Merge it only after a human approves its current head commit for merging, and record that approval in the PR first.
 3. For `review:ai`, run the merge gate on the head commit: green CI, every commit through the pre-commit review with no bypass, evidence for every acceptance criterion, a passing rerun in a clean checkout, a head that contains the base branch's tip so that CI tested what will land, final issue `State`, and `Closes owner/repo#N` in the PR body. Don't assume branch protection or required checks exist. If the PR can't be shown to be clearly mergeable, relabel it `review:human`.
-4. Re-read the PR, its reviews, its CI, and the base branch right before merging. Stop unless it still carries `review:ai` at the checked head SHA, with no change requests, green CI, and the base's tip still in the head. Merge with that SHA. Squash a PR that completes one issue, and use a merge commit for a PR that integrates several. When several PRs are ready, merge them one at a time, starting with the one that touches the most widely shared files.
+4. Re-read the PR, its reviews, its CI, and the base branch right before merging. Stop unless its lane still allows the merge at the checked head SHA, with no change requests, green CI, and the base's tip still in the head. Merge with that SHA. Squash a PR that completes one issue, and use a merge commit for a PR that integrates several. When several PRs are ready, merge them one at a time, starting with the one that touches the most widely shared files.
 5. Verify that the PR merged, the merge commit's tree equals the tree of the head you checked, each issue closed, and its Status is the completed option. Then add the completion comment.
 
 Initialization and issue template PRs change repository conventions, so they are always `review:human`.

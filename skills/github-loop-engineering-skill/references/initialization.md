@@ -51,7 +51,7 @@ If the user declines, record that in the handoff and continue the original reque
 4. **Priority mirror:** mirror the board Priority in `priority:*` labels (baseline), in an organization Priority issue field if one exists, or nowhere. The board field stays the source of truth.
 5. **Blank issues:** whether the template chooser should hide blank issues from people without write access (baseline: hide).
 6. **Triage authority:** agents triage by best judgment, setting Priority and moving accepted work out of `Triage` (baseline), or humans approve every item out of `Triage`.
-7. **Merge authority:** agents merge `review:ai` pull requests after the [merge gate](pull-requests.md#merge-gate) (baseline), or humans merge every pull request. Either way, every pull request carries a review label. The baseline gate expects a pre-commit review gate in the repository, such as the codex-review gate. Without one, agents don't merge unless repository guidance waives that condition.
+7. **Merge authority:** agents merge `review:ai` pull requests after the [merge gate](pull-requests.md#merge-gate) (baseline), or humans merge every pull request. Either way, every pull request carries a review label. With the baseline, an agent also merges a `review:human` pull request once a human approves its head commit for merging. The baseline gate expects a pre-commit review gate in the repository, such as the codex-review gate. Without one, agents don't merge `review:ai` pull requests unless repository guidance waives that condition.
 
 ## Baseline profile
 
@@ -95,7 +95,7 @@ Create only the labels that are missing. Keep GitHub's default labels. Never ren
 | `security` | `67060C` | Security issue or hardening |
 | `area:ci` | `D5E697` | CI, release, and deployment pipelines |
 | `area:<component>` | distinct per label | One per confirmed component. The description names its path |
-| `review:human` | `D93F0B` | Needs a human reviewer before merging: interface or UX changes, or a change that isn't clearly mergeable. Agents never merge it |
+| `review:human` | `D93F0B` | Needs a human reviewer before merging: interface or UX changes, or a change that isn't clearly mergeable. An agent merges it only after a human approves it |
 | `review:ai` | `0E8A16` | Clearly mergeable. An agent merges it after CI, the pre-commit review, and the acceptance evidence all pass |
 
 Every issue gets at least one `area:*` label, or `documentation` for documentation-only work. Each issue carries exactly one `priority:*` label when labels mirror Priority. Every pull request carries exactly one `review:*` label, as described in [pull requests](pull-requests.md#classify).

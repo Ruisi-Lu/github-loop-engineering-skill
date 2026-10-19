@@ -36,7 +36,7 @@ Write a body that a reviewer can judge without the conversation:
 
 | Label | Color | Purpose |
 |:--|:--|:--|
-| `review:human` | `D93F0B` | Needs a human reviewer before merging: interface or UX changes, or a change that isn't clearly mergeable. Agents never merge it |
+| `review:human` | `D93F0B` | Needs a human reviewer before merging: interface or UX changes, or a change that isn't clearly mergeable. An agent merges it only after a human approves it |
 | `review:ai` | `0E8A16` | Clearly mergeable. An agent merges it after CI, the pre-commit review, and the acceptance evidence all pass |
 
 Every open PR carries exactly one of them. If the repository lacks these labels and its guidance doesn't define how PRs are reviewed, pull request review is uninitialized (see [initialization](initialization.md#when-to-initialize)). Propose initializing it, and until it is, treat every PR as `review:human`: open it and request review, but don't merge it.
@@ -58,12 +58,13 @@ When in doubt, choose `review:human`. Reclassify when the scope changes. A `revi
 
 ## Human review
 
-For a `review:human` PR, the agent opens the PR and requests review. It never merges the PR, and it doesn't relabel the PR `review:ai` to get around a human gate.
+For a `review:human` PR, the agent opens the PR and requests review. It merges the PR only after a human approves its current head commit for merging, and it never relabels the PR `review:ai` to get around a human gate.
 
 1. Write why the PR needs a human, naming the matching reason from [Classify](#classify), and list each point the reviewer must confirm, such as a deviation from an acceptance criterion, a product decision, or an assumption that wasn't tested. Put it in the PR body and in the issue's `State`, so a reviewer who opens either one knows what to judge. The label alone doesn't say why.
 2. Request the reviewers named in repository guidance, or ask the user who should review. Use `reviewers` on `create_pull_request` or `update_pull_request`. When the agent works with the reviewer's own token, the reviewer is the PR's author, and GitHub doesn't let an author approve their own pull request. Assign the PR to them instead, and name it in your handoff.
 3. Answer review feedback with new commits on the PR branch, and keep the issue's `State` current.
-4. Leave the merge to the reviewer or another human. Once a human merges it, verify it as described in [After the merge](#after-the-merge).
+4. Leave the merge to a human, unless a human approves the PR for merging and asks you to merge it. The approval can come outside GitHub, for example in the conversation. Before merging, record it in a PR comment: who approved, the date, and the head SHA it covers. Then merge as described in [Merge](#merge), with that SHA. If the head changed after the approval, ask again.
+5. Once the PR merged, verify it as described in [After the merge](#after-the-merge).
 
 ## Merge gate
 
@@ -86,7 +87,7 @@ If a condition fails, don't merge. Fix what is within the authorized scope, then
 
 ## Merge
 
-Right before the merge call, read the PR again with `pull_request_read` `get` and `get_reviews`, read its CI the way the gate did, and fetch the base branch. Stop unless it still carries `review:ai`, its head SHA is still the one the gate checked, the head still contains the base's tip, no reviewer's latest review requests changes, and CI is still green. Labels, reviews, checks, and the base can change while the gate runs, and `expectedHeadSha` guards only the head.
+Right before the merge call, read the PR again with `pull_request_read` `get` and `get_reviews`, read its CI as the [merge gate](#merge-gate) describes, and fetch the base branch. Stop unless its lane still allows the merge (`review:ai` with the gate passed, or `review:human` with a recorded human approval of this head), its head SHA is still the one that was checked, the head still contains the base's tip, no reviewer's latest review requests changes, and CI is still green. Labels, reviews, checks, and the base can change while the gate runs, and `expectedHeadSha` guards only the head.
 
 When several PRs are ready, merge them one at a time. Start with the one that touches the most widely shared files, such as a changelog, an index, or a decision log. Every merge moves the base, so each other open PR has to bring it in and pass CI again before it can merge.
 

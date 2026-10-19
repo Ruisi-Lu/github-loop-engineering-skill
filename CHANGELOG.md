@@ -20,6 +20,7 @@ All notable changes to this project are documented here. The format follows [Kee
 - A follow-up issue gets its milestone or parent when it is created, and it joins the current run only when it belongs there.
 - A criterion the user skips is recorded as pending, with its reason, unless the user drops it. A claim that something didn't happen counts as evidence only once it can no longer happen.
 - When the reviewer of a `review:human` PR is also its author, because the agent works with the reviewer's token, the agent assigns the PR to them instead of requesting a review that GitHub won't let them give.
+- An agent can merge a `review:human` PR once a human approves its current head commit for merging, for example in the conversation, because GitHub doesn't let a PR's author approve it. The agent first records who approved, the date, and the head SHA in a PR comment, and asks again if the head changes. It still never merges one on its own judgment.
 
 ## [1.3.1] - 2026-10-16
 
