@@ -23,7 +23,7 @@ Decide which writes stay with you before you hand out the first leaf. By default
 - review labels, Status, Priority, assignees, milestones, and dependencies;
 - merges.
 
-A leaf agent then works on its own branch in its own workspace and stops before the first push. It reports its head commit, its evidence, and a pull request body draft. On GitHub it changes only its own issue: the `State` section and the acceptance criteria it has evidence for, keeping the rest of the body byte for byte, plus implementation notes as comments. It never merges, and it doesn't create issues. Follow-up work goes into its report as a proposal.
+A leaf agent then works on its own branch in its own workspace and stops before the first push. It reports its head commit, its evidence, and a pull request body draft. On GitHub it changes only its own issue: the `State` section and the acceptance criteria it has evidence for, keeping the rest of the body byte for byte, plus implementation notes as comments. It never merges, and it doesn't create issues. Follow-up work goes into its report as a proposal. When its leaf turns out too large, it stops at a clean point and proposes the parts in its report, and you [split the leaf](../SKILL.md#split-an-issue-that-turns-out-too-large).
 
 The reasons:
 
@@ -62,6 +62,7 @@ Ask for a short report in this shape, so you can check it item by item:
 - Checks: each command, where it ran, and its result
 - Docs changed: paths
 - Follow-up proposals: one line each
+- Split proposal: none, or the parts the leaf should split into, which part is done, and which criteria each part proves
 - Side effects: anything left running or changed on shared machines or environments
 - Not done: what the agent couldn't do, and why
 ```

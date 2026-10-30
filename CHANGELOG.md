@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- An issue that turns out too large during the work is split without asking, so it doesn't block others: the original becomes the parent, every acceptance criterion moves to a child or to the parent's done criteria, the agent keeps only the leaf it continues, the other children stay unassigned and ready for others, and a dependent issue that needs only one part waits on that child. Repository guidance can reserve splitting for humans. In a fan-out, a leaf agent proposes the split in its report and the coordinator makes it.
+
 ## [1.5.0] - 2026-10-30
 
 ### Changed

@@ -244,6 +244,17 @@ When bodies must reference issues that don't exist yet, create the issues one at
 
 Do not confuse issue number, database ID, node ID, and project item ID.
 
+#### Split an issue that turns out too large
+
+An issue that is too large blocks other work. Its assignee claims all of it, so nobody else can take a part, and every issue that waits on it waits for all of it. When you find, at the start or during the work, that the issue won't end in one agent pass and one reviewable change, that part of it could be taken by someone else now, or that an issue blocked by it needs only part of it, split it before you continue. Don't ask first, unless repository guidance reserves splitting for humans. In a fan-out, a leaf agent doesn't split its leaf: it stops and proposes the split in its report, and the coordinator splits it.
+
+1. Stop at a clean point, and record the progress so far in an implementation note with its commits and evidence.
+2. Plan the parts as a work graph, as above. The part already in progress becomes one leaf, and it stays yours.
+3. Turn the original issue into the parent: rewrite its body to the [parent format](references/work-item-format.md#parent-issue). Move every acceptance criterion into the child that will prove it or into the parent's done criteria, so none is lost, and carry each child's finished progress into its `State`.
+4. Create the children as above. Assign yourself only the leaf you continue, and leave the others unassigned in the accepted option so that others can take them now. Keep the parent in the active option and remove your own assignment from it, so your claim covers only your leaf.
+5. When another issue is blocked by the original but needs only one part, move its dependency to that child, as in [Mark or clear a blocker](#mark-or-clear-a-blocker).
+6. Add an implementation note on the parent that records the split and its date. Re-read the parent, the children, and the dependencies, and run the cold-start check on each body. Then continue with your leaf.
+
 ### Fan out from a parent issue
 
 Use this when you are asked to work through a parent issue and the host can run agents in parallel. Without parallel agents, work through the same ready set one leaf at a time.
