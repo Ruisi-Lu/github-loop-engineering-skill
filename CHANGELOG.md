@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- When work on an issue starts, the agent assigns the authenticated user without asking, as the claim that keeps other people and agents from taking the same issue. It claims before any other work, and if the read-back shows that someone else claimed the issue at the same time, it removes only its own login and asks. A fan-out assigns each leaf as it claims it and skips leaves that someone else is assigned to. Repository policy or the request can still leave issues unassigned.
+
 ## [1.4.0] - 2026-10-19
 
 ### Added

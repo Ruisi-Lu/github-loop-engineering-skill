@@ -118,7 +118,7 @@ Use explicit repository instructions over the defaults below. When no policy exi
 - Triage by best judgment, as described under [Status](#status) and [Priority](#priority).
 - Add a duplicate priority label only when the repository already requires field-and-label synchronization.
 - Reuse existing labels. Create or rename labels only when the user requests it, standing repository policy clearly authorizes it, or an authorized initialization adds them.
-- Leave assignees empty on creation unless the user names someone. Decide assignment when work starts.
+- Leave assignees empty on creation unless the user names someone. Assign the authenticated user when work starts, as the claim on the issue.
 - Use issue types only when supported; do not emulate them with new labels unless repository policy says to.
 - Treat agent-discovered follow-up work as a proposal. Create it only when the user requested discovery-and-creation or the repository has a standing intake policy. Give a follow-up you create the milestone or parent it belongs to, and don't add it to the current run unless it belongs there. A finished leaf often turns up one or two follow-ups, and a run that takes on all of them doesn't finish.
 
@@ -206,17 +206,17 @@ If the project auto-add workflow already attached the issue, treat an already-pr
 4. Update only the requested project fields.
 5. Verify issue and board agree.
 
-Starting work normally means setting the existing active-status option, updating the body's current state, and adding an implementation note only when it provides durable context.
+Starting work normally means [assigning the authenticated user](#assignment-when-work-starts), setting the existing active-status option, updating the body's current state, and adding an implementation note only when it provides durable context.
 
 #### Assignment when work starts
 
-Don't assign anyone when an issue is created. Decide assignment at the start transition:
+Don't assign anyone when an issue is created. At the start transition, the assignee is the claim: it tells other people and agents that the issue is taken, so two of them don't pick up the same work. Claim the issue before any other work on it:
 
 1. Read the current assignees.
 2. If the authenticated user is already assigned, keep the assignment.
-3. If nobody is assigned, ask the user whether to assign themselves. Skip the question only when the request or repository policy already decides it. Resolve the login with `get_me`, because MCP assignee lists don't accept `@me`.
-4. If someone else is assigned, don't reassign or add anyone. Report the current assignee and ask how to proceed.
-5. Send the complete intended assignee set, then re-read it.
+3. If nobody is assigned, assign the authenticated user without asking. Resolve the login with `get_me`, because MCP assignee lists don't accept `@me`. Leave the issue unassigned only when the request or repository policy says so, for example when only a human assigns work.
+4. If someone else is assigned, don't start, reassign, or add anyone. Report the current assignee and ask how to proceed.
+5. Send the complete intended assignee set, then re-read it. If the read-back shows another assignee, someone claimed the issue at the same time: remove only your own login and handle it as in step 4.
 
 When one authorized transition sets the same field value on several items, such as moving a set of accepted children to the ready option, use the batch project update if the connected schema exposes it. Then verify every item. A batch can partially succeed.
 
@@ -249,8 +249,8 @@ Do not confuse issue number, database ID, node ID, and project item ID.
 Use this when you are asked to work through a parent issue and the host can run agents in parallel. Without parallel agents, work through the same ready set one leaf at a time.
 
 1. Read the parent, its sub-issues at every level, and their project items.
-2. Find the ready set: open leaves in the accepted status that nothing blocks. A Project query returns it for each container, for example `parent-issue:owner/repo#40 status:Todo -is:blocked` with the project's own option names. Order the set by Priority.
-3. Claim each leaf before handing it out: move it to the active option and re-read it. Skip a leaf that someone else already started. Move the parent to the active option with its first leaf. Settle [assignment](#assignment-when-work-starts) once for the whole fan-out instead of asking for each leaf.
+2. Find the ready set: open leaves in the accepted status that nothing blocks and nobody else is assigned to. A Project query returns it for each container, for example `parent-issue:owner/repo#40 status:Todo -is:blocked` with the project's own option names. Order the set by Priority.
+3. Claim each leaf before handing it out: [assign](#assignment-when-work-starts) the authenticated user, move it to the active option, and re-read it. Skip a leaf that someone else is assigned to or already started. Move the parent to the active option with its first leaf.
 4. Give each claimed leaf to its own agent in an isolated workspace, such as a git worktree. The prompt names the repository and the issue number, tells the agent to run this skill's loop on that issue only, and points it at a written brief that repeats the rules it doesn't inherit: GitHub access through MCP only, which writes it may make, the repository's guidance, and when to stop and report. [references/fan-out.md](references/fan-out.md) describes the brief, the split of writes, and the report to ask for.
 5. When an agent reports back, verify its leaf on GitHub and its change in git, not from the report. Before a leaf with security or design risk goes out, have a second agent try to break it, as described in [references/fan-out.md](references/fan-out.md#verify-risky-leaves-independently). Then rerun the ready-set query, because a closed leaf can unblock others, and hand out what became ready.
 6. Merge the leaves' pull requests one at a time, as described in [Classify and merge pull requests](#classify-and-merge-pull-requests): you merge the `review:ai` ones, and the `review:human` ones only after a human approves them. Leaf agents never merge, because every merge moves the base branch under every other open pull request.

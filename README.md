@@ -41,7 +41,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - **Loop-native:** every mutation is one pass through discover, frame, act, verify, and persist.
 - **Evidence-gated:** acceptance criteria and current read-back state control lifecycle transitions.
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
-- **Assignment at start:** issues are created unassigned. The agent asks whether to assign the user when work starts, unless the request or repository policy already decides.
+- **Claim at start:** issues are created unassigned. When work starts, the agent assigns the authenticated user, so other people and agents see that the issue is taken. It never takes over an issue that someone else is assigned to.
 - **Agent-first triage:** agents set Priority when they create an issue and move accepted work out of intake by best judgment, unless repository guidance reserves triage for humans.
 - **Two review lanes:** every pull request is labeled `review:human` or `review:ai`. A human reviews interface and UX changes and anything that isn't clearly mergeable, and an agent merges such a pull request only after the human approves its head commit. An agent merges the rest only after green CI, an audited pre-commit review of every commit, evidence for every acceptance criterion, its own rerun of the checks in a clean checkout, and a head that contains the base branch's tip, so CI tested what lands.
 - **MCP-first:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL, except user-authorized fallbacks for the two writes the official server lacks, native issue dependencies and milestones, and for reading check runs when the token can't.
