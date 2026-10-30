@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-10-31
+
 ### Added
 
 - An issue that turns out too large during the work is split without asking, so it doesn't block others: the original becomes the parent, every acceptance criterion moves to a child or to the parent's done criteria, the agent keeps only the leaf it continues, the other children stay unassigned and ready for others, and a dependent issue that needs only one part waits on that child. Repository guidance can reserve splitting for humans. In a fan-out, a leaf agent proposes the split in its report and the coordinator makes it.
@@ -114,7 +116,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.5.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.6.0...HEAD
+[1.6.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.5.0...github-loop-engineering--v1.6.0
 [1.5.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.4.0...github-loop-engineering--v1.5.0
 [1.4.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.3.1...github-loop-engineering--v1.4.0
 [1.3.1]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.3.0...github-loop-engineering--v1.3.1
