@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- The review interview no longer assumes the reviewer has read the pull request. It opens with a plain-language briefing: the problem, what changes for users or operators before and after, the points to decide and why each needs a person, and what was and wasn't tested. Each point is explained, with its alternatives and their costs, before its question, and every question offers "I'm not sure yet, explain more", which gets a new explanation instead of a guess. Comprehension questions for high-risk changes check what was taught, and a wrong answer means explaining again from a different angle.
+
 ## [1.7.0] - 2026-10-31
 
 ### Added

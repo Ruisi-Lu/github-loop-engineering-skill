@@ -64,28 +64,39 @@ For a `review:human` PR, the agent opens the PR and requests review. It merges t
 1. Write why the PR needs a human, naming the matching reason from [Classify](#classify), and list each point the reviewer must confirm, such as a deviation from an acceptance criterion, a product decision, or an assumption that wasn't tested. Put it in the PR body and in the issue's `State`, so a reviewer who opens either one knows what to judge. The label alone doesn't say why.
 2. Request the reviewers named in repository guidance, or ask the user who should review. Use `reviewers` on `create_pull_request` or `update_pull_request`. When the agent works with the reviewer's own token, the reviewer is the PR's author, and GitHub doesn't let an author approve their own pull request. Assign the PR to them instead, and name it in your handoff.
 3. Answer review feedback with new commits on the PR branch, and keep the issue's `State` current.
-4. When the reviewer is in the conversation with you, don't hand them the PR to read. Walk them through it with a [review interview](#review-interview), and treat an approval that skipped the interview as not given. A reviewer who reads the PR on GitHub instead judges it from the PR body.
+4. When the reviewer is in the conversation with you, don't hand them the PR to read. Teach them its key points and ask them to decide each one in a [review interview](#review-interview), and treat an approval that skipped the interview as not given. A reviewer who reads the PR on GitHub instead judges it from the PR body.
 5. Leave the merge to a human, unless a human approves the PR for merging and asks you to merge it. The approval can come outside GitHub, for example in the conversation. Before merging, record it in a PR comment: who approved, the date, and the head SHA it covers. After a review interview, that comment is the interview record. Then merge as described in [Merge](#merge), with that SHA. If the head changed after the approval, ask again.
 6. Once the PR merged, verify it as described in [After the merge](#after-the-merge).
 
 ## Review interview
 
-A reviewer who can't follow a diff or an agent's summary approves it anyway, and the human gate then checks nothing. The review interview turns the review into multiple-choice questions that the reviewer can answer without reading code, and the reviewer's answers become the approval.
+A reviewer who can't follow a diff or an agent's summary approves it anyway, and the human gate then checks nothing. The review interview assumes the reviewer hasn't read the PR. You teach them what they need to judge it, one point at a time, and then ask multiple-choice questions they can answer from what you taught. Their answers become the approval.
 
-**Prepare.** Finding facts is your job, never the reviewer's. Before the first question, read the PR, its diff, the closing issues, CI, and the evidence, and settle every fact you can look up yourself. Then list the points the reviewer must judge: each point from step 1 of [Human review](#human-review), and each place where the change makes a choice the issue didn't settle. A point you can settle from evidence is not a question.
+**Prepare.** Finding facts is your job, never the reviewer's. Before you start, read the PR, its diff, the closing issues, CI, and the evidence, and settle every fact you can look up yourself. Then list the points the reviewer must judge: each point from step 1 of [Human review](#human-review), and each place where the change makes a choice the issue didn't settle. A point you can settle from evidence is not a question.
 
-**Ask decision questions.** Ask one question per point, several at a time, with the host's question tool when it has one.
+**Open with a briefing.** Before the first question, explain in a few short paragraphs, in plain language and without code:
 
-- Make each question self-contained. Say what the PR changes in terms of behavior a user or operator would see, never in terms of files or functions, and name the issue or criterion it touches.
-- Give two to four options. Each option says what happens if the reviewer picks it: the behavior, and what it costs or risks. Put your recommendation first and say why.
-- Ask the questions you can ask now, in rounds. A question whose options depend on another question's answer waits for a later round.
-- When the reviewer picks an option other than your recommendation, the answer is review feedback. Change the PR as the answer requires, then ask again about what the change affects. Read a free-text answer literally. A multiple-choice question answered with nothing selected settles nothing, so ask it again.
+- the problem the PR solves and why it matters now;
+- what changes for a user or operator, as before and after;
+- the points you will ask about, and why each one needs a person;
+- what was tested and what wasn't.
 
-**Check understanding of high-risk changes.** When the PR touches access control or authentication, secrets, data migrations or deletion, an external API or protocol contract, deployment or infrastructure configuration, or a release, or anything repository guidance lists as high risk, also ask one or two comprehension questions. Each one describes a concrete situation, such as an expired token, a failed migration halfway through, or an old client calling the new API, and asks what the system does after this PR. Give three or four plausible options, exactly one of them correct, in random order and without a recommendation. When the reviewer picks a wrong one, explain what actually happens and ask again with a different situation. Don't ask for approval until the reviewer answers one correctly.
+Explain any term or mechanism the reviewer needs, such as what a token refresh is or why a migration can't be undone, with a concrete example from this change. Don't make them look anything up.
 
-**Ask for approval last.** Once every question is settled, summarize the answers and ask whether to approve the PR for merging at its current head SHA, naming the SHA. If the head changes before the merge, run the interview again for what changed.
+**Teach, then ask, one point at a time.** For each point, first explain it: the situation it covers, what the PR does there, and the alternatives, each with what it costs or risks. Then ask the question, with the host's question tool when it has one.
 
-**Record it.** Before merging, write one PR comment: the head SHA, the reviewer, the date, and for each question the question, the options, your recommendation, the answer, and what changed because of it, and for each comprehension question whether the first answer was right. This comment is the approval record that step 5 of [Human review](#human-review) asks for. Add the decisions to the issues they affect, as in the issue's `State` or a comment.
+- Make each question answerable from what you just explained. Describe behavior a user or operator would see, never files or functions, and name the issue or criterion it touches.
+- Give two to four options. Each option says what happens if the reviewer picks it. Put your recommendation first and say why.
+- Include an option such as "I'm not sure yet, explain more". When the reviewer picks it, explain the point again in a different way, with another example, and ask again. A guess is not a review.
+- Ask in rounds. A point whose options depend on another point's answer waits for a later round, and points that don't depend on each other can share a round, each with its own explanation.
+- When the reviewer picks an option other than your recommendation, the answer is review feedback. Change the PR as the answer requires, then explain and ask again about what the change affects. Read a free-text answer literally. A multiple-choice question answered with nothing selected settles nothing, so ask it again.
+- Answer the reviewer's own questions whenever they ask, before you go on.
+
+**Check that high-risk points landed.** When the PR touches access control or authentication, secrets, data migrations or deletion, an external API or protocol contract, deployment or infrastructure configuration, or a release, or anything repository guidance lists as high risk, also ask one or two comprehension questions after teaching those points. Each one describes a concrete situation you haven't used as an example, such as an expired token, a migration that fails halfway, or an old client calling the new API, and asks what the system does after this PR. Its answer must follow from what you taught. Give three or four plausible options, exactly one of them correct, in random order and without a recommendation. A wrong answer means the teaching didn't land, not that the reviewer failed: explain the point again from a different angle and ask with another situation. Don't ask for approval until the reviewer answers one correctly.
+
+**Ask for approval last.** Once every point is settled, summarize what the PR does and what was decided, and ask whether to approve the PR for merging at its current head SHA, naming the SHA. If the head changes before the merge, run the interview again for what changed.
+
+**Record it.** Before merging, write one PR comment: the head SHA, the reviewer, the date, and for each point the question, the options, your recommendation, the answer, and what changed because of it, and for each comprehension question whether the first answer was right. This comment is the approval record that step 5 of [Human review](#human-review) asks for. Add the decisions to the issues they affect, as in the issue's `State` or a comment.
 
 ## Merge gate
 
