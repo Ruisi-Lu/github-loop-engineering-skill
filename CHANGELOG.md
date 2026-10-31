@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A review interview for `review:human` pull requests (`references/pull-requests.md#review-interview`). When the reviewer is in the conversation, the agent doesn't hand them the PR to read. It looks up the facts itself, then asks one multiple-choice question per point the reviewer must judge, phrased as behavior with the consequence of each option and its recommendation first. For high-risk changes, such as access control, secrets, data migrations, external API contracts, deployment, or releases, it also asks one or two comprehension questions about a concrete situation, without a recommendation, and asks for approval only after one is answered correctly. An answer that differs from the recommendation is review feedback. The questions and answers, with the head SHA, are recorded in a PR comment as the approval record.
+
 ## [1.6.0] - 2026-10-31
 
 ### Added
