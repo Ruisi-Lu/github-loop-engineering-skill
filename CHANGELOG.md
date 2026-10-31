@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-10-31
+
 ### Changed
 
 - The review interview no longer assumes the reviewer has read the pull request. It opens with a plain-language briefing: the problem, what changes for users or operators before and after, the points to decide and why each needs a person, and what was and wasn't tested. Each point is explained, with its alternatives and their costs, before its question, and every question offers "I'm not sure yet, explain more", which gets a new explanation instead of a guess. Comprehension questions for high-risk changes check what was taught, and a wrong answer means explaining again from a different angle.
@@ -126,7 +128,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.7.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.8.0...HEAD
+[1.8.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.7.0...github-loop-engineering--v1.8.0
 [1.7.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.6.0...github-loop-engineering--v1.7.0
 [1.6.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.5.0...github-loop-engineering--v1.6.0
 [1.5.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.4.0...github-loop-engineering--v1.5.0
