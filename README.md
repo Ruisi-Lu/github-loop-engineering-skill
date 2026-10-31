@@ -45,10 +45,11 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - **Agent-first triage:** agents set Priority when they create an issue and move accepted work out of intake by best judgment, unless repository guidance reserves triage for humans.
 - **Two review lanes:** every pull request is labeled `review:human` or `review:ai`. A human reviews interface and UX changes and anything that isn't clearly mergeable, and an agent merges such a pull request only after the human approves its head commit. Instead of handing the reviewer a diff, the agent teaches them the key points in plain language and asks a multiple-choice question about each, and for high-risk changes checks that the explanation landed. An agent merges the rest only after green CI, an audited pre-commit review of every commit, evidence for every acceptance criterion, its own rerun of the checks in a clean checkout, and a head that contains the base branch's tip, so CI tested what lands.
 - **MCP-first:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL, except user-authorized fallbacks for the two writes the official server lacks, native issue dependencies and milestones, and for reading check runs when the token can't.
-- **Host-portable:** the skill is standard Agent Skills content with no vendor-specific agent metadata. The Claude Code plugin is an optional wrapper that installs the same files unchanged.
+- **Host-portable:** the skills are standard Agent Skills content. The only host-specific metadata is `disable-model-invocation` on the project quiz, which keeps Claude Code from starting it on its own; its description asks other hosts to do the same. The Claude Code plugin is an optional wrapper that installs the same files unchanged.
 - **Repository-agnostic:** no hard-coded owner, project number, field ID, or option ID. Existing repository vocabulary always wins. A baseline vocabulary applies only when the user authorizes first-use initialization.
 - **Recoverable:** partial failures trigger a fresh read and bounded recovery, never blind replay.
 - **Honest about limits:** missing tools, permissions, or authority become explicit stop conditions.
+- **Learn the project from its history:** an on-demand quiz reads the merged pull requests, asks multiple-choice questions about the decisions and rules they introduced, and explains every answer with the pull request behind it.
 
 ## What it manages
 
@@ -62,7 +63,8 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - pull request review lanes, and an evidence-gated merge for clearly mergeable pull requests;
 - evidence-backed acceptance criteria;
 - bulk changes paced under GitHub's rate limits;
-- completion, follow-up routing, and human handoff.
+- completion, follow-up routing, and human handoff;
+- a project quiz, started only on request, that teaches a newcomer the project from its merged pull requests.
 
 This is the lifecycle control and memory layer, not a coding-agent runtime. When a host can run agents in parallel, the skill decides which issues are ready, tells the host what to hand to each agent, and verifies every result on GitHub; the host launches the agents and their workspaces. The skill runs code only to recheck a pull request in a clean checkout before merging it, and it merges `review:ai` pull requests that pass the merge gate, and `review:human` pull requests only after a human approves them. It bypasses a missing MCP capability only through the user-authorized fallbacks in the MCP reference. Initialization and template updates go through pull requests that a human merges. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
 
@@ -78,6 +80,7 @@ This is the lifecycle control and memory layer, not a coding-agent runtime. When
 | `skills/github-loop-engineering-skill/references/pull-requests.md` | Opening pull requests, review labels, classification, merge gate, and post-merge checks |
 | `skills/github-loop-engineering-skill/references/fan-out.md` | Coordinating parallel agents: write split, brief, report, review, independent verification, resume, and cleanup |
 | `skills/github-loop-engineering-skill/assets/issue-templates/` | Cold-start issue templates (`en`, `zh-TW`) that initialization installs into `.github/ISSUE_TEMPLATE/` |
+| `skills/project-quiz/SKILL.md` | On-demand, read-only quiz built from merged pull requests to help someone learn the project |
 | `.claude-plugin/plugin.json` | Claude Code plugin manifest and release version |
 | `.claude-plugin/marketplace.json` | Single-plugin Claude Code marketplace catalog |
 | `scripts/` | Bun and TypeScript repository checks (development only) |
@@ -190,17 +193,19 @@ With an Agent Skills-compatible installer:
 npx skills add Ruisi-Lu/github-loop-engineering-skill
 ```
 
-Or copy the skill directory into the location used by your agent:
+Or copy the skill directories into the location used by your agent:
 
 ```bash
-cp -R skills/github-loop-engineering-skill ~/.codex/skills/
+cp -R skills/github-loop-engineering-skill skills/project-quiz ~/.codex/skills/
 ```
 
-For a standalone Claude Code skill without the plugin wrapper:
+For standalone Claude Code skills without the plugin wrapper:
 
 ```bash
-cp -R skills/github-loop-engineering-skill .claude/skills/
+cp -R skills/github-loop-engineering-skill skills/project-quiz .claude/skills/
 ```
+
+The project quiz is optional. Copy only `skills/github-loop-engineering-skill` if you don't want it.
 
 Install either the plugin or a standalone copy in Claude Code, not both. With both, the same skill loads twice under different names.
 
@@ -215,6 +220,14 @@ The skill triggers automatically when a request matches its description. To invo
 | Claude Code plugin | `/github-loop-engineering:github-loop-engineering-skill` |
 | Claude Code standalone skill | `/github-loop-engineering-skill` |
 | Codex | `$github-loop-engineering-skill` |
+
+The project quiz never starts on its own. Invoke it explicitly, optionally with a repository, a number of questions, and an area, label, or date range:
+
+| Host | Invocation |
+|:--|:--|
+| Claude Code plugin | `/github-loop-engineering:project-quiz` |
+| Claude Code standalone skill | `/project-quiz` |
+| Codex | `$project-quiz` |
 
 Run one bounded work loop:
 
@@ -262,6 +275,14 @@ for the first time. Propose the labels, Project fields, automations, and zh-TW
 issue templates, apply what I approve, and list the steps I must do in the UI.
 ```
 
+Learn a project from its pull request history:
+
+```text
+/github-loop-engineering:project-quiz owner/repo 10 merged since 2026-01-01
+```
+
+The quiz reads the merged pull requests, their issues, and their review discussions through the GitHub MCP Server, asks one question at a time, and explains each answer with a link to its source. It writes nothing to GitHub.
+
 The skill follows repository instructions and existing project vocabulary. Ambiguous targets, insufficient evidence, missing capabilities, and new authority requirements stop the loop before an unsafe transition.
 
 ## Design boundaries
@@ -272,7 +293,7 @@ Each agent completes one lifecycle operation or bounded recovery at a time. Fann
 
 Agents merge `review:ai` pull requests only after the merge gate passes on the exact head commit, and `review:human` pull requests only after a human approves that head commit. The skill doesn't count on branch protection or required checks, because private repositories on GitHub Free have neither. The gate is the only enforcement, so the merging agent checks every condition itself.
 
-The Claude Code plugin packages only the skill. It adds no hooks, agents, commands, or MCP servers, so installing it grants no new tool access.
+The Claude Code plugin packages only the two skills. It adds no hooks, agents, commands, or MCP servers, so installing it grants no new tool access.
 
 ## Development
 

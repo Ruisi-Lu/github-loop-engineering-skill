@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A project quiz skill (`skills/project-quiz`) that runs only when the user invokes it, such as `/github-loop-engineering:project-quiz`. It reads the repository's merged pull requests, their closing issues, and their review discussions through the GitHub MCP Server, skips routine changes such as dependency bumps and release chores, and picks the ones that explain design decisions, non-obvious rules, reverts, conventions, and breaking changes. It then asks multiple-choice questions about understanding rather than trivia, one at a time, and after every answer explains why with a link to the pull request or issue, asking again later about anything missed. It checks each fact against later changes, leaves people out of the questions, and writes nothing to GitHub.
+
 ## [1.8.0] - 2026-10-31
 
 ### Changed
