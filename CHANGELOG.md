@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-10-31
+
 ### Added
 
 - A review interview for `review:human` pull requests (`references/pull-requests.md#review-interview`). When the reviewer is in the conversation, the agent doesn't hand them the PR to read. It looks up the facts itself, then asks one multiple-choice question per point the reviewer must judge, phrased as behavior with the consequence of each option and its recommendation first. For high-risk changes, such as access control, secrets, data migrations, external API contracts, deployment, or releases, it also asks one or two comprehension questions about a concrete situation, without a recommendation, and asks for approval only after one is answered correctly. An answer that differs from the recommendation is review feedback. The questions and answers, with the head SHA, are recorded in a PR comment as the approval record.
@@ -120,7 +122,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.6.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.7.0...HEAD
+[1.7.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.6.0...github-loop-engineering--v1.7.0
 [1.6.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.5.0...github-loop-engineering--v1.6.0
 [1.5.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.4.0...github-loop-engineering--v1.5.0
 [1.4.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.3.1...github-loop-engineering--v1.4.0
