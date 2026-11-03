@@ -206,7 +206,7 @@ If the project auto-add workflow already attached the issue, treat an already-pr
 4. Update only the requested project fields.
 5. Verify issue and board agree.
 
-Starting work normally means [assigning the authenticated user](#assignment-when-work-starts), setting the existing active-status option, updating the body's current state, and adding an implementation note only when it provides durable context.
+Starting work normally means [assigning the authenticated user](#assignment-when-work-starts), setting the existing active-status option, updating the body's current state, [checking the issue for overbuilding](#check-the-issue-for-overbuilding), and adding an implementation note only when it provides durable context.
 
 #### Assignment when work starts
 
@@ -244,6 +244,21 @@ When bodies must reference issues that don't exist yet, create the issues one at
 
 Do not confuse issue number, database ID, node ID, and project item ID.
 
+#### Check the issue for overbuilding
+
+An issue can ask for more than its goal needs, and an agent that executes it faithfully builds all of it. Only the user can descope an acceptance criterion, so give them the chance before the work starts. Right after you claim an issue, and before you write any code, compare its `What` and acceptance criteria with its `Why` and look for items that:
+
+- don't serve the stated `Why`;
+- build generality for a need nobody has stated, such as an option, plugin point, or abstraction layer with only one user;
+- already exist in the repository, fully or in part;
+- require verification beyond what the repository's guidance asks for at this stage.
+
+When none match, continue without saying anything. A check that asks every time slows every loop. When some match, ask the user once, with all the items in one question set, as for a [pending decision](#mark-or-clear-a-blocker): for each item, name the criterion or scope line, say why it looks unneeded, and give the choices, which are drop it, move it to a follow-up issue, or keep it, with your recommendation first. Keep working on the parts the answer doesn't affect while you wait.
+
+Record the answer in the issue as an explicit descoping decision with its date and reason, in `Out of scope` and an implementation note, so that someone who resumes the issue cold knows why the criteria are fewer. A moved item becomes a follow-up issue only as described in [Frame the next bounded transition](#2-frame-the-next-bounded-transition). In a fan-out, the coordinator runs this check on each leaf before handing it out, and a leaf agent that finds overbuilding during the work reports it rather than descoping on its own.
+
+While you work, build only what the acceptance criteria need. An improvement you notice along the way is a follow-up proposal, not part of the current change.
+
 #### Split an issue that turns out too large
 
 An issue that is too large blocks other work. Its assignee claims all of it, so nobody else can take a part, and every issue that waits on it waits for all of it. When you find, at the start or during the work, that the issue won't end in one agent pass and one reviewable change, that part of it could be taken by someone else now, or that an issue blocked by it needs only part of it, split it before you continue. Don't ask first, unless repository guidance reserves splitting for humans. In a fan-out, a leaf agent doesn't split its leaf: it stops and proposes the split in its report, and the coordinator splits it.
@@ -261,7 +276,7 @@ Use this when you are asked to work through a parent issue and the host can run 
 
 1. Read the parent, its sub-issues at every level, and their project items.
 2. Find the ready set: open leaves in the accepted status that nothing blocks and nobody else is assigned to. A Project query returns it for each container, for example `parent-issue:owner/repo#40 status:Todo -is:blocked` with the project's own option names. Order the set by Priority.
-3. Claim each leaf before handing it out: [assign](#assignment-when-work-starts) the authenticated user, move it to the active option, and re-read it. Skip a leaf that someone else is assigned to or already started. Move the parent to the active option with its first leaf.
+3. Claim each leaf before handing it out: [assign](#assignment-when-work-starts) the authenticated user, move it to the active option, and re-read it. Skip a leaf that someone else is assigned to or already started. Move the parent to the active option with its first leaf. [Check each leaf for overbuilding](#check-the-issue-for-overbuilding) and ask about all the leaves' findings in one question set.
 4. Give each claimed leaf to its own agent in an isolated workspace, such as a git worktree. The prompt names the repository and the issue number, tells the agent to run this skill's loop on that issue only, and points it at a written brief that repeats the rules it doesn't inherit: GitHub access through MCP only, which writes it may make, the repository's guidance, and when to stop and report. [references/fan-out.md](references/fan-out.md) describes the brief, the split of writes, and the report to ask for.
 5. When an agent reports back, verify its leaf on GitHub and its change in git, not from the report. Before a leaf with security or design risk goes out, have a second agent try to break it, as described in [references/fan-out.md](references/fan-out.md#verify-risky-leaves-independently). Then rerun the ready-set query, because a closed leaf can unblock others, and hand out what became ready.
 6. Merge the leaves' pull requests one at a time, as described in [Classify and merge pull requests](#classify-and-merge-pull-requests): you merge the `review:ai` ones, and the `review:human` ones only after a human approves them. Leaf agents never merge, because every merge moves the base branch under every other open pull request.

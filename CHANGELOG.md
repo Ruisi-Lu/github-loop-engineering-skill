@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-04
+
+### Added
+
+- An overbuilding check when work starts (`SKILL.md#check-the-issue-for-overbuilding`). Right after claiming an issue, the agent compares its scope and acceptance criteria with its `Why` and looks for items that don't serve the goal, build generality nobody asked for, already exist in the repository, or require more verification than the repository's guidance asks for. When nothing matches, it continues silently. Otherwise it asks the user once, with every item and a recommendation to drop it, move it to a follow-up issue, or keep it, and records the answer in the issue as a dated descoping decision. In a fan-out, the coordinator checks each leaf before handing it out and asks about all of them together, and a leaf agent reports overbuilding it finds as a descoping proposal instead of dropping criteria itself. During the work, the agent builds only what the acceptance criteria need.
+
 ## [1.9.0] - 2026-10-31
 
 ### Added

@@ -63,6 +63,7 @@ Ask for a short report in this shape, so you can check it item by item:
 - Docs changed: paths
 - Follow-up proposals: one line each
 - Split proposal: none, or the parts the leaf should split into, which part is done, and which criteria each part proves
+- Descoping proposal: none, or each criterion or scope line that looks unneeded and why. The agent still meets every criterion unless the coordinator relays the user's decision to drop it
 - Side effects: anything left running or changed on shared machines or environments
 - Not done: what the agent couldn't do, and why
 ```
