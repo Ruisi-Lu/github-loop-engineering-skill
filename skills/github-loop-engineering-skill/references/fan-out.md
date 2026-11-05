@@ -42,7 +42,7 @@ Write one brief for the whole run, in a file every agent reads, and point each a
 - the [write split](#who-writes-what), including the issue sections it may change;
 - GitHub access through MCP only, with the tool notes it needs. For example, `issue_read` can't resolve a pull request number, so a pull request's labels come from `pull_request_read`;
 - commit conventions, signing, and the pre-commit review gate, which it never bypasses, not even for a work-in-progress commit;
-- bringing in the base branch with a merge rather than a rebase, because a rebase rewrites commits without running the pre-commit hook;
+- bringing in the base branch only when you ask for it, at the leaf's turn to merge, and then with a merge rather than a rebase, because a rebase rewrites commits without running the pre-commit hook;
 - where heavy builds and tests run, and the lock on any shared test environment, so parallel agents don't overload one machine or deploy over each other;
 - where test evidence and scratch files go, and what never goes into them in a public repository;
 - the [report](#agent-report) to send, and when to stop: done, blocked by something outside the leaf, or the same failure twice without a new approach.

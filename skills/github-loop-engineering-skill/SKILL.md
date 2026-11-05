@@ -230,7 +230,17 @@ When the parts can run in parallel, plan them as a work graph that agents can ex
 - Size each leaf for one agent pass that ends in one reviewable change, with its own acceptance criteria. A leaf must be startable from its own body, as the [work-item format](references/work-item-format.md#parent-issue) requires.
 - When the parent's done criteria need end-to-end proof, add a final exit child that proves them, for example with an automated test. It depends on the leaves it covers.
 - Add blocked-by dependencies only between leaves, and only for real prerequisites: a leaf can't start, or can't be accepted, without another leaf's result. Keep the graph acyclic. Prefer many independent leaves and a short longest chain to a long sequence of small steps.
+- Check the leaves for [shared hotspots](#shared-hotspots) before you create them.
 - List each leaf's parent and prerequisites in `Pointers`.
+
+#### Shared hotspots
+
+A hotspot is a place in a file that many changes extend at the same spot, such as a central route or permission list, an API document's path list, a changelog section, an index, or a README section that every feature adds to. Two leaves that both add to it conflict, whichever merges second, and the more leaves run in parallel, the more conflicts each pull request meets before it merges.
+
+1. Find the hotspots: the files that the leaves' scopes name or will change, and the files that the base branch's recent commits change most often, for example `git log -100 --first-parent --name-only --format= <base> | sort | uniq -c | sort -rn`. Then read where in the file the changes land. A file that many commits change in different places is not a hotspot.
+2. When a few leaves add an entry or two to the same hotspot, keep them parallel. The conflicts are small, and the coordinator resolves them at each leaf's turn to merge, as described in [Merge](references/pull-requests.md#merge).
+3. When the hotspot's structure makes most leaves conflict, for example because every new endpoint must be added to several central lists, propose a restructuring as its own issue, such as letting each module register its own entries, generating the list, or splitting the file. Make the leaves that would conflict blocked by it when it can land first. Otherwise record it as a follow-up proposal.
+4. Don't split or reorganize a hotspot inside a feature leaf. Moving content conflicts with every open pull request that touches the file. A restructuring is its own change, made when few open pull requests touch that file.
 
 Then create the issues:
 
@@ -314,7 +324,7 @@ Follow [references/pull-requests.md](references/pull-requests.md):
 1. As soon as a PR is open, label it `review:human` or `review:ai`. Interface and UX changes, changes that aren't clearly mergeable, changes to repository conventions, and PRs from forks get `review:human`. Everything else gets `review:ai`. Relabel when the scope changes.
 2. For `review:human`, write why the PR needs a human and what the reviewer must confirm in the PR body and the issue's `State`, then request review and stop. When the reviewer is in the conversation, run a [review interview](references/pull-requests.md#review-interview) instead of asking them to read the PR: teach each point in plain language, then ask a multiple-choice question about it. Merge it only after a human approves its current head commit for merging, and record that approval in the PR first.
 3. For `review:ai`, run the merge gate on the head commit: green CI, every commit through the pre-commit review with no bypass, evidence for every acceptance criterion, a passing rerun in a clean checkout, a head that contains the base branch's tip so that CI tested what will land, final issue `State`, and `Closes owner/repo#N` in the PR body. Don't assume branch protection or required checks exist. If the PR can't be shown to be clearly mergeable, relabel it `review:human`.
-4. Re-read the PR, its reviews, its CI, and the base branch right before merging. Stop unless its lane still allows the merge at the checked head SHA, with no change requests, green CI, and the base's tip still in the head. Merge with that SHA. Squash a PR that completes one issue, and use a merge commit for a PR that integrates several. When several PRs are ready, merge them one at a time, starting with the one that touches the most widely shared files.
+4. Don't bring the base branch into a PR while it waits for review or CI. Bring it in once, at the PR's turn to merge, as described in [Merge](references/pull-requests.md#merge). Re-read the PR, its reviews, its CI, and the base branch right before merging. Stop unless its lane still allows the merge at the checked head SHA, with no change requests, green CI, and the base's tip still in the head. Merge with that SHA. Squash a PR that completes one issue, and use a merge commit for a PR that integrates several. When several PRs are ready, merge them one at a time, starting with the one that touches the most widely shared files.
 5. Verify that the PR merged, the merge commit's tree equals the tree of the head you checked, each issue closed, and its Status is the completed option. Then add the completion comment.
 
 Initialization and issue template PRs change repository conventions, so they are always `review:human`.

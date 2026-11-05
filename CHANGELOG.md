@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A shared-hotspot check when planning a work graph (`SKILL.md#shared-hotspots`). Before creating the leaves, the agent looks for places that many changes extend at the same spot, such as central route or permission lists, an API document's path list, or a changelog section, using the leaves' scopes and the files the base branch's recent commits change most often. Leaves that add an entry or two to a hotspot stay parallel. When the hotspot's structure makes most leaves conflict, the agent proposes restructuring it as its own issue and makes the conflicting leaves wait for it when it can land first. It never splits or reorganizes a hotspot inside a feature leaf, because moving content conflicts with every open pull request that touches the file.
+
+### Changed
+
+- A pull request brings in the base branch only at its turn to merge (`references/pull-requests.md#merge`), not each time the base moves while it waits for review or CI, even when the two now conflict. At merge time the agent merges the base in once, lets CI run on the new head, runs the gate again or asks for approval of the new head, and merges right away. In a busy repository, catching up while waiting added a commit and a CI run for every move of the base and could conflict again before the merge. Leaf agents in a fan-out bring in the base only when the coordinator asks. Merging rather than rebasing is unchanged.
+
 ## [1.10.0] - 2026-11-04
 
 ### Added
