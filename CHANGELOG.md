@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-05
+
 ### Added
 
 - A shared-hotspot check when planning a work graph (`SKILL.md#shared-hotspots`). Before creating the leaves, the agent looks for places that many changes extend at the same spot, such as central route or permission lists, an API document's path list, or a changelog section, using the leaves' scopes and the files the base branch's recent commits change most often. Leaves that add an entry or two to a hotspot stay parallel. When the hotspot's structure makes most leaves conflict, the agent proposes restructuring it as its own issue and makes the conflicting leaves wait for it when it can land first. It never splits or reorganizes a hotspot inside a feature leaf, because moving content conflicts with every open pull request that touches the file.
