@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- Comprehension questions in the review interview (`references/pull-requests.md#review-interview`) ask why the pull request makes its high-risk choice: what problem it solves, what would go wrong with an alternative the agent explained, or what it gives up in return. They no longer ask how the system behaves in a rare or extreme situation the change wasn't made for, or about implementation details, because remembering an edge case doesn't show that the reviewer can judge the change. Each wrong option is a reason that sounds sensible but isn't the pull request's, such as the goal of a rejected alternative. Every review question uses the plain words the agent taught with and brings in no new term.
+- The project quiz (`skills/project-quiz`) asks mostly why: why a choice was made, what problem a rule prevents, or what would go wrong with the alternative the discussion rejected. It doesn't ask how the system behaves in a rare or extreme situation unless handling that situation is why the pull request exists, uses plain words, and asks again about a missed idea in other words or with a different everyday situation.
+
 ## [1.11.0] - 2026-11-05
 
 ### Added

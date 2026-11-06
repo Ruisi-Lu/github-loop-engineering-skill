@@ -48,9 +48,10 @@ Take the scope from the invocation's arguments and the conversation. Use these d
 
 Write every question before you ask the first one, so the set covers the project evenly and no two questions give each other away.
 
-- Ask about understanding, not trivia. Good questions ask why a choice was made, what the system does in a concrete situation, which convention applies to a change, or what problem a rule prevents. Never ask for a pull request number, a date, an author, or a file name on its own.
-- Describe a situation the user can reason about, such as "a contributor opens a PR that adds a new config key; what must it also update?". Explain any term the question needs.
-- Give three or four options, exactly one correct. Make the wrong options plausible, ideally the alternatives that the discussion considered and rejected, or the behavior before the change. Put them in random order. Add an option such as "I don't know yet, teach me".
+- Ask why, not trivia. Most questions should ask why a choice was made, what problem a rule prevents, or what would go wrong with the alternative the discussion rejected, because someone who knows the reason can apply it to a change the history never covered. A question may also ask which convention applies to an everyday change. Never ask for a pull request number, a date, an author, or a file name on its own.
+- Don't ask how the system behaves in a rare or extreme situation, such as a crash at an exact moment or two requests racing, unless handling that situation is the reason the pull request exists. Remembering an edge case doesn't show understanding of the project.
+- Use plain words. Describe a situation the user can reason about, such as "a contributor opens a PR that adds a new config key; what must it also update?". Don't use a term the project or its history hasn't made necessary, and explain any term the question does use in the question itself.
+- Give three or four options, exactly one correct. Make the wrong options plausible, ideally the reasons behind the alternatives that the discussion considered and rejected, or the behavior before the change. Put them in random order. Add an option such as "I don't know yet, teach me".
 - Order the questions from the project's purpose and structure toward the details, so that early answers help with later ones.
 - For each question, keep its answer key to yourself: the correct option, why it's right, why each wrong option is wrong, and the pull request or issue that shows it.
 
@@ -63,7 +64,7 @@ Write every question before you ask the first one, so the set covers the project
    - why it's right, in two to four sentences, with a link to the pull request or issue;
    - for a wrong answer, why the chosen option is wrong, since it is often what the project did before or a rejected alternative;
    - for "teach me", the same explanation, with no score for that question.
-4. When an answer was wrong or the user asked to be taught, ask about the same idea once more later in the quiz, with a different situation. Count it as a separate question.
+4. When an answer was wrong or the user asked to be taught, ask about the same idea once more later in the quiz, in other words or with a different everyday situation. Count it as a separate question.
 5. Answer the user's own questions whenever they ask, from what you read, before you go on. If they want to stop, stop and go to the wrap-up.
 6. A free-text answer counts by its meaning. A question answered with nothing selected settles nothing, so ask it again.
 
