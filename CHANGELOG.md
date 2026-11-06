@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-11-07
+
 ### Changed
 
 - Comprehension questions in the review interview (`references/pull-requests.md#review-interview`) ask why the pull request makes its high-risk choice: what problem it solves, what would go wrong with an alternative the agent explained, or what it gives up in return. They no longer ask how the system behaves in a rare or extreme situation the change wasn't made for, or about implementation details, because remembering an edge case doesn't show that the reviewer can judge the change. Each wrong option is a reason that sounds sensible but isn't the pull request's, such as the goal of a rejected alternative. Every review question uses the plain words the agent taught with and brings in no new term.
