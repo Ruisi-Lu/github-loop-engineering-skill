@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Added
+
+- A post-merge check of the base branch's CI on the merge commit (`references/pull-requests.md#after-the-merge`). It catches two pull requests that each passed alone but break the base together. The agent doesn't hold the next merge while it runs, but once it fails, merging stops until a fix forward or a revert lands.
+
+### Removed
+
+- The merge gate condition that a pull request's head contain the base branch's tip (`references/pull-requests.md#merge-gate`). With many agents working in parallel, the base moved faster than a pull request could follow, so a pull request that had to catch up before merging caught up, reran CI, and fell behind again without merging. A pull request that doesn't conflict with the base now merges as it is. It brings in the base, still with a merge rather than a rebase, only when it conflicts at its turn to merge or a reviewer asks. The post-merge check that the merge commit's tree equals the head's tree assumed the head contained the base, so it is replaced by a check that the merge commit changed the same files as the pull request.
+
 ## [1.12.0] - 2026-11-07
 
 ### Changed
