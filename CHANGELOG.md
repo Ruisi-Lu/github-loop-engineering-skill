@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-11-07
+
 ### Added
 
 - A post-merge check of the base branch's CI on the merge commit (`references/pull-requests.md#after-the-merge`). It catches two pull requests that each passed alone but break the base together. The agent doesn't hold the next merge while it runs, but once it fails, merging stops until a fix forward or a revert lands.
@@ -165,7 +167,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.12.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.13.0...HEAD
+[1.13.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.12.0...github-loop-engineering--v1.13.0
 [1.12.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.11.0...github-loop-engineering--v1.12.0
 [1.11.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.10.0...github-loop-engineering--v1.11.0
 [1.10.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.9.0...github-loop-engineering--v1.10.0
