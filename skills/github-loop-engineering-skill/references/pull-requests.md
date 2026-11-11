@@ -1,86 +1,175 @@
-# Pull request review and merge
+# Pull requests
 
-Use this reference when opening, classifying, reviewing, or merging a pull request. Each PR goes to one of two lanes. A PR that needs a person's judgment waits for a human reviewer. A PR that is clearly mergeable is merged by an agent after an evidence gate.
+Use this reference when opening, classifying, reviewing, or merging a pull request. Each PR is in one of two lanes. An agent merges a `review:ai` PR after the merge gate. A `review:human` PR waits for a person. Every change to what a user sees goes there, because how an interface looks and feels is a matter of taste that evidence can't settle, and little else does.
 
 Repository guidance wins over these defaults, including different label names, a different merge method, or a rule that humans merge every PR.
 
 ## Contents
 
+- [Verification record](#verification-record)
 - [Open](#open)
-- [Review labels](#review-labels)
 - [Classify](#classify)
+- [Merge gate](#merge-gate)
 - [Human review](#human-review)
 - [Review interview](#review-interview)
-- [Merge gate](#merge-gate)
 - [Merge](#merge)
 - [After the merge](#after-the-merge)
+
+## Verification record
+
+Every PR carries a record of what was checked, so that nobody checks the same thing twice. It applies [Verify once](../SKILL.md#verify-once) to a PR. The author's side writes the record into the PR body when the PR opens. Whoever checks something later adds a PR comment.
+
+An entry counts only when someone with write access to the repository wrote it: the PR's author, or a commenter whose `author_association` is `OWNER`, `MEMBER`, or `COLLABORATOR`. On a public repository anyone can comment, and a comment that claims a passed check from anyone else is not a record. Some entries, such as a pre-commit review outcome or a check run outside CI, can't be checked against GitHub or git. Trusting them means trusting the people with write access, the same trust that lets them push to the repository.
+
+### What it holds
+
+Each entry names the commit SHA it covers and who ran it: the person, or the agent and its model.
+
+| Entry | Content | Who writes it |
+|:--|:--|:--|
+| Checks | Each command, such as the format check, lint, tests, and acceptance checks, where it ran, and its result | Whoever ran it |
+| Pre-commit review | Each commit and its outcome: passed the first time, or what the review blocked and how that was fixed | Whoever can read how the commits were made: the author's agent from its own transcript, or a coordinator from the host's record of a delegated agent's tool calls |
+| Security review | Only when one ran: its scope, meaning the areas it covered and the claims it attacked, and each finding with the commit that fixed it and how the fix was checked, or "no findings" | Whoever ran or coordinated it |
+| Acceptance evidence | Each acceptance criterion with its evidence, or a pointer to the issue comment or test report that holds it | The author's side |
+| Gate result or approval | The [merge gate](#merge-gate) result, or a human's approval | The merging agent, in a PR comment |
+
+A security review is, for example, an independent agent's attempt to break a risky change, as in [fan-out](fan-out.md#verify-risky-leaves-independently), or a security reviewer's audit of the diff. When a later commit changes code in its scope, such as the fix for a finding, review that change too and update the entry.
+
+In a public repository, describe each fixed finding by its kind and its fix, never as steps to exploit it. An exploitable finding left unfixed doesn't go into a public PR at all: report it as the repository's security policy says.
+
+### How to read it
+
+Before you run a check, a review, or an audit on a PR, or delegate one, read the record in the PR's body and comments. This holds for the merge gate, for preparing a review interview, and for any other review of the PR.
+
+1. **Find the commit an entry covers:** the SHA it names. When it names none, take the last commit in the PR from before the entry was written. For an entry in the body, that is the PR's opening unless the body says otherwise. Commit dates can be set to anything, so prefer the PR's timeline when it shows when commits were pushed.
+2. **Check the entry against the PR.** The commit is the head or an ancestor of the head, and each fix commit the entry names is in the PR. An entry whose commit is no longer in the PR, as after a rebase, covers nothing.
+3. **Do only what the entry doesn't cover.** List the commits after the covered one. For those commits only: have their pre-commit review shown, and review them for security only when they change code in the security review's scope or touch a high-risk area the stated scope leaves out. A scope that isn't stated is the PR's whole diff at the covered commit. A merge of the base brings in code the base already accepted, so look only at what the merge itself changed, with `git show --remerge-diff <merge commit>`, after checking that its other parent is a commit on the base branch. A merge that changes more than its conflict resolutions needs, or whose other parent isn't on the base, is reviewed like any other commit.
+4. **Add your result** to the record in a PR comment, with the commit it covers.
+
+The exceptions in [Verify once](../SKILL.md#verify-once) apply: don't reuse an entry written by someone without write access, as in a PR from a fork, or one that what you observe contradicts, and run an independent check when the user, a human reviewer, or repository guidance asks for one. A high-risk change alone is not a reason to repeat a recorded review.
 
 ## Open
 
 Before the first push:
 
 - Run the repository's checks where they are cheap, locally or on a build machine. CI is the merge gate, not a debugger: every push reruns it, and on a private repository every run spends metered minutes.
-- Bring in the base branch with a merge, not a rebase, once the pull request is open. A rebase rewrites commits without running the pre-commit hook, so a rebased commit has no review record for the [merge gate](#merge-gate), and a conflict resolution made during a rebase is never reviewed.
-- Bring in the base branch only when the pull request conflicts with it at its turn to merge, as described in [Merge](#merge), or when a reviewer asks for it. A pull request doesn't need the base's latest commits to merge. Don't bring the base in just because it moved, and don't resolve a conflict while the pull request still waits for review or CI. With many agents working in parallel, the base moves faster than a pull request can follow, and a pull request that had to catch up before merging would catch up, rerun CI, and fall behind again without ever merging.
 - If the repository uses a secret scanner, scan both the branch's commits and the head's tree. The tree must be clean on its own, because a squash merge puts the same content in a new commit that an allowlist entry for the old commit doesn't cover.
 - In a public repository, read the commits, the body, and any evidence files for secrets, internal hostnames or addresses, customer names, and personal data. What is pushed stays readable after it is deleted.
 
-Write a body that a reviewer can judge without the conversation:
+Once the PR is open:
 
-- what changed and why;
-- the changes, by file or area;
-- validation: each command, where it ran, and its result;
-- each acceptance criterion with its evidence, or "not met" and why;
-- the review lane and why;
-- `Closes owner/repo#N` for every issue the pull request completes.
+- Bring in the base branch with a merge, not a rebase. A rebase rewrites commits without running the pre-commit hook, so the rewritten commits have no review record, and a conflict resolution made during a rebase is never reviewed.
+- Bring in the base branch only when the PR conflicts with it at its turn to merge, as described in [Merge](#merge), or when a reviewer asks for it. A PR doesn't need the base's latest commits to merge. Don't bring the base in just because it moved, and don't resolve a conflict while the PR still waits for review or CI. With many agents working in parallel, the base moves faster than a PR can follow, and a PR that had to catch up before merging would catch up, rerun CI, and fall behind again without ever merging.
 
-## Review labels
+Write a body that a reviewer or a merging agent can judge without the conversation:
 
-| Label | Color | Purpose |
-|:--|:--|:--|
-| `review:human` | `D93F0B` | Needs a human reviewer before merging: interface or UX changes, or a change that isn't clearly mergeable. An agent merges it only after a human approves it |
-| `review:ai` | `0E8A16` | Clearly mergeable. An agent merges it after CI, the pre-commit review, and the acceptance evidence all pass |
+```markdown
+## Summary
 
-Every open PR carries exactly one of them. If the repository lacks these labels and its guidance doesn't define how PRs are reviewed, pull request review is uninitialized (see [initialization](initialization.md#when-to-initialize)). Propose initializing it, and until it is, treat every PR as `review:human`: open it and request review, but don't merge it.
+What changed and why.
+
+## Changes
+
+- By file or area
+
+## Verification
+
+Covers commit <head SHA>. Written by <person, or agent and model>.
+
+- Checks: `<command>` on <where it ran>: passed
+- Pre-commit review: <sha> passed; <sha> blocked on <what>, fixed in <sha>
+- Security review: <who ran it>, scope <areas and claims>; no findings, or <finding> fixed in <sha>, checked by <test>
+- Acceptance criteria:
+  - <criterion>: <evidence, or the issue comment or report that holds it>, or "not met" and why
+
+## Review lane
+
+`review:ai` or `review:human`, and why. For `review:human`, what the reviewer must confirm.
+
+Closes owner/repo#N
+```
+
+Leave out the security review line when none ran. Write `Closes owner/repo#N` for every issue the PR completes.
 
 ## Classify
 
-Label the PR as soon as it is open. `create_pull_request` doesn't take labels, so add the label afterwards with `issue_write`, as shown in the [MCP reference](github-mcp-tools.md#label-a-pull-request).
+| Label | Color | Purpose |
+|:--|:--|:--|
+| `review:ai` | `0E8A16` | An agent merges it after the merge gate passes |
+| `review:human` | `D93F0B` | A person has to see or try the result before it merges, as for every interface change. An agent merges it only after a human approves it |
 
-Use `review:human` when the PR:
+Every open PR carries exactly one of them. Label the PR as soon as it is open. `create_pull_request` doesn't take labels, so add the label afterwards with `issue_write`, as shown in the [MCP reference](github-mcp-tools.md#label-a-pull-request).
 
-- changes an interface or a UX feature: screens, interaction, user-facing copy, or frontend behavior;
-- isn't clearly mergeable, for example because an acceptance criterion is unmet or deviates in a way someone must confirm, the change needs a product decision, or it reverses an earlier decision;
-- changes repository conventions, such as an initialization or issue template PR;
-- comes from a fork. Only people with write access can push a branch to the repository itself, while a fork can carry anyone's code, and the merge gate runs that code.
+`review:ai` is the default. Use `review:human` only when one of these holds:
 
-Use `review:ai` for everything else, such as backend, infrastructure, CI, or documentation changes whose acceptance criteria all have evidence.
+- **It changes the interface.** The PR adds or changes what a user sees or how they interact with it: a screen, a layout, a visual style, an interaction, or user-facing copy. A person confirms the result, because whether an interface looks and feels right is a matter of taste. An approved design in the issue, a screenshot, or an end-to-end test shows that the result matches a specification. It doesn't show that the result is good, so none of them replaces the confirmation.
+- **It changes how the repository works.** The PR changes repository guidance that agents load, such as `CLAUDE.md`, `AGENTS.md`, or a contributing guide, the CI workflows, the pre-commit review gate or its configuration, branch or release settings, or the issue templates and labels, as in an initialization PR. Such a change can relax the rules every later merge follows, including this gate.
+- **Repository guidance reserves the change for a person.**
+- **The PR comes from a fork.** Only people with write access can push a branch to the repository itself, while a fork can carry anyone's code, and the merge gate runs that code.
 
-When in doubt, choose `review:human`. Reclassify when the scope changes. A `review:ai` PR that picks up an interface or UX change becomes `review:human`, and you swap the label before doing anything else with the PR.
+A change to frontend code that leaves what a user sees and does unchanged, such as a refactor or a dependency update, is not an interface change. It stays `review:ai`. When you can't tell whether something visible changed, find out by running it or comparing screenshots, rather than sending it to a person on suspicion.
+
+Keep the person's part small. Put interface changes in their own PR where the work allows, apart from the logic behind them, so that only that PR waits. The reviewer confirms what they can see and try, and you show it to them, as described in [Review interview](#review-interview). The rest of the PR is settled by evidence: before merging it, you check the merge gate's other conditions, as described in [Human review](#human-review).
+
+These are not reasons for human review:
+
+- **An open decision.** When the change needs a product decision, deviates from an acceptance criterion, or reverses an earlier decision, ask the user that one question, as a [pending decision](../SKILL.md#mark-or-clear-a-blocker). Record the answer in the issue and keep the PR `review:ai`. One question costs a person far less than reviewing a whole PR, and it is answered sooner.
+- **An unmet acceptance criterion.** Meet it, or ask the user whether to descope it.
+- **A failed or missing check.** Fix the failure or run the check, as described in [Merge gate](#merge-gate).
+- **A high-risk change,** such as one to authentication or a data migration. It gets one security review, recorded in the verification record, and condition 4 of the [merge gate](#merge-gate) requires it.
+- **Doubt.** When you can't tell whether the PR changes what a user sees, run it or compare screenshots. When you can't tell for another reason, ask the user the one question that decides it.
+
+Reclassify when the scope changes. A `review:ai` PR that picks up an interface change becomes `review:human`, and you swap the label before doing anything else with the PR. Never relabel a `review:human` PR `review:ai` to get around a human gate. It becomes `review:ai` only when its reason is gone, for example because the interface change moved into its own PR.
+
+If the repository lacks these labels and its guidance doesn't define how PRs are reviewed, pull request review is uninitialized (see [initialization](initialization.md#when-to-initialize)). Propose initializing it, and until it is, treat every PR as `review:human`: open it and request review, but don't merge it.
+
+## Merge gate
+
+An agent merges a `review:ai` PR only when every condition below holds on its current head commit. For a `review:human` PR, a human's approval takes the place of the lane check in condition 1, and the rest of condition 1 and conditions 2 to 8 hold as well, except that a PR from a fork passes condition 1 once a person approved it. For each condition, read the [verification record](#verification-record) first and do yourself only what it doesn't cover.
+
+Don't rely on branch protection, rulesets, or required checks. They may be missing, and private repositories on GitHub Free have neither: the API answers 403. This gate is the only enforcement.
+
+1. **The lane still fits.** Read the PR with `pull_request_read` `get`, its files with `get_files`, and its reviews with `get_reviews`. The head branch is in the repository itself, not a fork. The final diff still fits `review:ai` as [Classify](#classify) defines it, the PR isn't a draft, and it has no merge conflicts with the current base. A head that lacks the base's latest commits but doesn't conflict passes. No reviewer's latest review requests changes, and if the reviews can't be read, this condition fails. Note the head commit SHA. Every later check refers to it.
+2. **CI is green.** Read the head commit's check runs with `get_check_runs` and its commit statuses with `get_status`. Every check finished and succeeded, or its own conditions skipped it. Pending, failed, cancelled, and timed-out checks all block the merge. A head commit without any checks blocks it too, unless the repository has no CI that runs on pull requests. If `get_check_runs` answers 403, the token can't read checks. Read the head commit's workflow runs and jobs through the `actions` toolset instead, as in [Read CI results](github-mcp-tools.md#read-ci-results). If CI can't be read at all, this condition fails. A PR's `mergeable_state`, such as `clean` or `unstable`, is not evidence that CI passed or failed.
+3. **Every commit was reviewed.** List the commits with `get_commits`. A commit counts as reviewed when the record's pre-commit review entry names it as passed, or when a record you can read yourself shows that it passed the repository's pre-commit review gate, such as the codex-review gate: your own transcript, or the host's record of a delegated agent's tool calls. A passing gate leaves no trace in git, which is why the side that can read that record writes the entry. Review now what neither covers: a commit made in a repository without a pre-commit review gate, a commit a rebase rewrote, or a commit that skipped the gate through `git commit --no-verify` or `-n`, a bypass variable such as `CODEX_GATE_BYPASS`, or a `core.hooksPath` override. Run the repository's review tool, or an independent reviewer agent, on what those commits change, and add the result to the record. Fix a finding with a new commit on the PR branch when the branch is in the repository and the fix is within your authorized scope. Otherwise, or when you and the finding disagree, ask the PR's author or the user. Report a skipped gate to the user as well.
+4. **A high-risk change had a security review.** When the diff touches access control or authentication, secrets, data migrations or deletion, an external API or protocol contract, deployment or infrastructure configuration, a release, or anything repository guidance lists as high risk, the verification record holds a security review that covers it, as described in [How to read it](#how-to-read-it). When none does, have one run now, on what the record doesn't cover, and add it to the record.
+5. **Every acceptance criterion has evidence.** For each issue the PR closes, every criterion has evidence recorded in an issue comment, or in a test report in the repository's docs. A checked box or a linked PR is not evidence. Evidence recorded on an earlier commit still counts when the later commits don't change what it exercised. Otherwise, check that criterion again on the head.
+6. **The checks passed on the head commit.** Take the commands from repository guidance: the format check, lint, tests, and acceptance checks. A command counts as passed when CI ran it on the head commit and the step that runs it succeeded, or when the record shows that it passed on the head commit in a clean checkout, meaning a fresh clone or a new git worktree with no uncommitted or untracked files. Read the workflow file and the run's jobs to see which commands CI ran. A step that can't fail, through `continue-on-error`, `|| true`, or the like, doesn't count. When a command is a wrapper, such as `make ci`, read what it runs before you match it with CI. When you can't match a command with a CI step, treat it as not run. Run the remaining commands yourself in a clean checkout of the head commit, not the author's working copy. When the PR changes how the checks run, such as a workflow file, or a script or setting that decides which checks and tests run, CI tested it with a pipeline the PR itself changed, so its results don't count. A clean-checkout entry for the head commit still does. For a PR from a fork, run its code only after a person approved it, in an isolated environment without secrets. When commands remain and the host can't run commands, this condition fails.
+7. **Each issue reads as final.** The `State` section of every closing issue describes the final state, and the body passes the [cold-start check](work-item-format.md#cold-start-check).
+8. **The PR closes its issues.** The PR body has `Closes owner/repo#N` for every issue it completes. Use the full `owner/repo#N` form. A PR that closes no issue fails this condition.
+
+The gate doesn't require the head to contain the base branch's latest commits. A PR that doesn't conflict merges as it is, however far the base moved. The cost is that CI tested the head, or, for a GitHub Actions `pull_request` run, the head merged with the base as it was when the run started. Two PRs that each passed alone can still break the base together without a textual conflict. The base branch's own CI on the merge commit catches that, as described in [After the merge](#after-the-merge).
+
+Before merging, record the gate in a PR comment: the head SHA, the result of each condition, which entries of the record you relied on, and the commands you ran yourself with their results.
+
+**When a condition fails,** don't merge. Fix what is within the authorized scope, then check again only what the fix could change. On a new head commit, that is conditions 1 and 2, condition 3 for the new commits, and the others only where the fix touched what they check. A command that CI doesn't run is run again only when the fix changed files it checks. On an unchanged head, it is only the condition that failed.
+
+A failed condition doesn't make the PR `review:human`. Relabel it only when it now matches a reason in [Classify](#classify). When the gate can't pass and the fix is outside your scope, stop and report what blocks it. If that is a decision, ask it as a [pending decision](../SKILL.md#mark-or-clear-a-blocker). Leave the PR open and say what it waits for in the issue's `State`.
 
 ## Human review
 
-For a `review:human` PR, the agent opens the PR and requests review. It merges the PR only after a human approves its current head commit for merging, and it never relabels the PR `review:ai` to get around a human gate.
+For a `review:human` PR, the agent opens the PR and requests review. It merges the PR only after a human approves its current head commit for merging.
 
-1. Write why the PR needs a human, naming the matching reason from [Classify](#classify), and list each point the reviewer must confirm, such as a deviation from an acceptance criterion, a product decision, or an assumption that wasn't tested. Put it in the PR body and in the issue's `State`, so a reviewer who opens either one knows what to judge. The label alone doesn't say why.
+1. Write why the PR needs a person, naming the matching reason from [Classify](#classify), and list each point the reviewer must confirm. Put it in the PR body and in the issue's `State`, so a reviewer who opens either one knows what to judge. The label alone doesn't say why.
 2. Request the reviewers named in repository guidance, or ask the user who should review. Use `reviewers` on `create_pull_request` or `update_pull_request`. When the agent works with the reviewer's own token, the reviewer is the PR's author, and GitHub doesn't let an author approve their own pull request. Assign the PR to them instead, and name it in your handoff.
 3. Answer review feedback with new commits on the PR branch, and keep the issue's `State` current.
 4. When the reviewer is in the conversation with you, don't hand them the PR to read. Teach them its key points and ask them to decide each one in a [review interview](#review-interview), and treat an approval that skipped the interview as not given. A reviewer who reads the PR on GitHub instead judges it from the PR body.
-5. Leave the merge to a human, unless a human approves the PR for merging and asks you to merge it. The approval can come outside GitHub, for example in the conversation. Before merging, record it in a PR comment: who approved, the date, and the head SHA it covers. After a review interview, that comment is the interview record. Then merge as described in [Merge](#merge), with that SHA. If the head changed after the approval, ask again.
-6. Once the PR merged, verify it as described in [After the merge](#after-the-merge).
+5. Leave the merge to a human, unless a human approves the PR for merging and asks you to merge it. The approval can come outside GitHub, for example in the conversation. Before merging, record it in a PR comment: who approved, the date, and the head SHA it covers. After a review interview, that comment is the interview record. If the head changed after the approval, ask again about what changed.
+6. Before you merge, check the rest of the [merge gate](#merge-gate) on that head, as its opening paragraph describes, reading the verification record first. The person's approval covers what a person can see. It doesn't show that the tests pass or that every commit was reviewed, and the reviewer shouldn't have to check that. Then merge as described in [Merge](#merge), with that SHA.
+7. Once the PR merged, verify it as described in [After the merge](#after-the-merge).
 
 ## Review interview
 
 A reviewer who can't follow a diff or an agent's summary approves it anyway, and the human gate then checks nothing. The review interview assumes the reviewer hasn't read the PR. You teach them what they need to judge it, one point at a time, and then ask multiple-choice questions they can answer from what you taught. Their answers become the approval.
 
-**Prepare.** Finding facts is your job, never the reviewer's. Before you start, read the PR, its diff, the closing issues, CI, and the evidence, and settle every fact you can look up yourself. Then list the points the reviewer must judge: each point from step 1 of [Human review](#human-review), and each place where the change makes a choice the issue didn't settle. A point you can settle from evidence is not a question.
+**Prepare.** Finding facts is your job, never the reviewer's. Before you start, read the PR, its diff, the closing issues, CI, and the [verification record](#verification-record), and settle every fact you can look up yourself. Use the record as it stands: don't run the checks, the pre-commit review, or a security review again to prepare, and do only what the record doesn't cover, as described in [How to read it](#how-to-read-it). Then list the points the reviewer must judge: each point from step 1 of [Human review](#human-review), and each place where the change makes a choice the issue didn't settle, above all about what a user sees or does. A point you can settle from evidence is not a question.
 
 **Open with a briefing.** Before the first question, explain in a few short paragraphs, in plain language and without code:
 
 - the problem the PR solves and why it matters now;
 - what changes for a user or operator, as before and after;
 - the points you will ask about, and why each one needs a person;
-- what was tested and what wasn't.
+- what was tested and what wasn't, from the verification record. When it holds a security review, say who ran it, what it found, and how each finding was fixed.
 
 Explain any term or mechanism the reviewer needs, such as what a token refresh is or why a migration can't be undone, with a concrete example from this change. Don't make them look anything up.
 
@@ -91,42 +180,39 @@ Explain any term or mechanism the reviewer needs, such as what a token refresh i
 - Include an option such as "I'm not sure yet, explain more". When the reviewer picks it, explain the point again in a different way, with another example, and ask again. A guess is not a review.
 - Ask in rounds. A point whose options depend on another point's answer waits for a later round, and points that don't depend on each other can share a round, each with its own explanation.
 - When the reviewer picks an option other than your recommendation, the answer is review feedback. Change the PR as the answer requires, then explain and ask again about what the change affects. Read a free-text answer literally. A multiple-choice question answered with nothing selected settles nothing, so ask it again.
+- For a point about the interface, show the result before you ask: screenshots from before and after, a preview link, or the steps to open it. A person can't judge a screen from a description of it.
 - Answer the reviewer's own questions whenever they ask, before you go on.
 
-**Check that high-risk points landed.** When the PR touches access control or authentication, secrets, data migrations or deletion, an external API or protocol contract, deployment or infrastructure configuration, or a release, or anything repository guidance lists as high risk, also ask one or two comprehension questions after teaching those points. A comprehension question checks that the reviewer understands why the PR makes its choice, because a reviewer who knows the reason can judge whether it fits the project and notice later when it stops fitting. Ask what problem the choice solves, what would go wrong with an alternative you explained, or what the choice gives up in return. Its answer must follow from what you taught. Don't ask how the system behaves in a rare or extreme situation the PR wasn't made for, such as a crash at an exact moment or two requests racing, and don't ask about implementation details: remembering an edge case doesn't show judgment. Use the same plain words as the other questions. Give three or four options, exactly one of them correct, in random order and without a recommendation. Make each wrong option a reason that sounds sensible but isn't why the PR does this, such as the goal of an alternative it rejected. A wrong answer means the teaching didn't land, not that the reviewer failed: explain the reason again from a different angle and ask again in other words. Don't ask for approval until the reviewer answers one correctly.
+**Check that high-risk points landed.** When the PR touches access control or authentication, secrets, data migrations or deletion, an external API or protocol contract, deployment or infrastructure configuration, or a release, or anything repository guidance lists as high risk, also ask one or two comprehension questions after teaching those points. A comprehension question checks that the reviewer understands why the PR makes its choice, because a reviewer who knows the reason can judge whether it fits the project and notice later when it stops fitting. It checks the reviewer's understanding, not the code, so it is never a reason to audit the code again.
+
+- Ask what problem the choice solves, what would go wrong with an alternative you explained, or what the choice gives up in return. The answer must follow from what you taught.
+- Don't ask how the system behaves in a rare or extreme situation the PR wasn't made for, such as a crash at an exact moment or two requests racing, and don't ask about implementation details. Remembering an edge case doesn't show judgment.
+- Use the same plain words as the other questions. Give three or four options, exactly one of them correct, in random order and without a recommendation. Make each wrong option a reason that sounds sensible but isn't why the PR does this, such as the goal of an alternative it rejected.
+- A wrong answer means the teaching didn't land, not that the reviewer failed. Explain the reason again from a different angle and ask again in other words. Don't ask for approval until the reviewer answers one correctly.
 
 **Ask for approval last.** Once every point is settled, summarize what the PR does and what was decided, and ask whether to approve the PR for merging at its current head SHA, naming the SHA. If the head changes before the merge, run the interview again for what changed.
 
-**Record it.** Before merging, write one PR comment: the head SHA, the reviewer, the date, and for each point the question, the options, your recommendation, the answer, and what changed because of it, and for each comprehension question whether the first answer was right. This comment is the approval record that step 5 of [Human review](#human-review) asks for. Add the decisions to the issues they affect, as in the issue's `State` or a comment.
-
-## Merge gate
-
-An agent merges a `review:ai` PR only when every condition below holds. The merging agent checks each one itself. The author's report, including a report from a delegated agent, is a claim.
-
-Don't rely on branch protection, rulesets, or required checks. They may be missing, and private repositories on GitHub Free have neither: the API answers 403. This gate is the only enforcement.
-
-1. **Still `review:ai`.** Read the PR with `pull_request_read` `get`, its files with `get_files`, and its reviews with `get_reviews`. The head branch is in the repository itself, not a fork. The final diff still fits the label, the PR isn't a draft, and it has no merge conflicts with the current base. A head that lacks the base's latest commits but doesn't conflict passes. No reviewer's latest review requests changes, and if the reviews can't be read, this condition fails. Note the head commit SHA. Every later check refers to it.
-2. **CI is green.** Read the head commit's check runs with `get_check_runs` and its commit statuses with `get_status`. Every check finished and succeeded, or its own conditions skipped it. Pending, failed, cancelled, and timed-out checks all block the merge. A head commit without any checks blocks it too, unless the repository has no CI that runs on pull requests. If `get_check_runs` answers 403, the token can't read checks. Read the head commit's workflow runs and jobs through the `actions` toolset instead, as in [Read CI results](github-mcp-tools.md#read-ci-results). If CI can't be read at all, this condition fails. A PR's `mergeable_state`, such as `clean` or `unstable`, is not evidence that CI passed or failed.
-3. **Every commit passed the pre-commit review.** List the commits with `get_commits`. Each one went through the repository's pre-commit review gate, such as the codex-review gate, without skipping it through `git commit --no-verify` or `-n`, a bypass variable such as `CODEX_GATE_BYPASS`, or a `core.hooksPath` override. A passing gate leaves no trace in git, so audit the record of how each commit was made: the agent's transcript, or the host's record of delegated tool calls. A commit without such a record can't be shown to have passed. A rebase rewrites commits without running the hook, so a rebased commit has no such record. A repository without a pre-commit review gate fails this condition unless its guidance waives it.
-4. **Every acceptance criterion has evidence.** For each issue the PR closes, every criterion has evidence recorded in an issue comment, or in a test report in the repository's docs. A checked box or a linked PR is not evidence.
-5. **The checks pass again in a clean checkout.** Check out the head commit into a fresh clone or a new git worktree, not the author's working copy. Then run the repository's format check, lint, tests, and acceptance checks there, with the commands from repository guidance. Every command passes. A host that can't run commands can't meet this condition.
-6. **Each issue reads as final.** The `State` section of every closing issue describes the final state, and the body passes the [cold-start check](work-item-format.md#cold-start-check).
-7. **The PR closes its issues.** The PR body has `Closes owner/repo#N` for every issue it completes. Use the full `owner/repo#N` form. A PR that closes no issue fails this condition.
-The gate doesn't require the head to contain the base branch's latest commits. A PR that doesn't conflict merges as it is, however far the base moved. With many agents working in parallel, the base moves faster than a PR can follow, and a PR that had to catch up before each merge attempt would catch up, rerun CI, and fall behind again without ever merging. The cost is that CI tested the head, or, for a GitHub Actions `pull_request` run, the head merged with the base as it was when the run started. Two PRs that each passed alone can still break the base together without a textual conflict. The base branch's own CI on the merge commit catches that, as described in [After the merge](#after-the-merge).
-
-Before merging, record the evidence in the PR body or a PR comment: the head SHA, the check results, the audit result, the commands you ran in the clean checkout with their results, and the test reports.
-
-If a condition fails, don't merge. Fix what is within the authorized scope, then run the whole gate again on the new head commit. If the PR can't be shown to be clearly mergeable, relabel it `review:human` and request review.
+**Record it.** Before merging, write one PR comment: the head SHA, the reviewer, the date, and for each point the question, the options, your recommendation, the answer, and what changed because of it, and for each comprehension question whether the first answer was right. This comment is the approval record that step 5 of [Human review](#human-review) asks for. Add the decisions to the issues they affect, in the issue's `State` or a comment.
 
 ## Merge
 
-Right before the merge call, read the PR again with `pull_request_read` `get` and `get_reviews`, and read its CI as the [merge gate](#merge-gate) describes. Stop unless its lane still allows the merge (`review:ai` with the gate passed, or `review:human` with a recorded human approval of this head), its head SHA is still the one that was checked, it still has no merge conflicts, no reviewer's latest review requests changes, and CI is still green. Labels, reviews, checks, and conflicts can change while the gate runs, and `expectedHeadSha` guards only the head. Also stop while the base branch's CI is red, unless this PR is the fix, as described in [After the merge](#after-the-merge).
+Right before the merge call, read the PR again with `pull_request_read` `get` and `get_reviews`, and read its CI as condition 2 of the [merge gate](#merge-gate) describes. Stop unless:
 
-Bring in the base branch at this point only when the PR conflicts with it, or when a reviewer asked for it. A PR that is behind the base but doesn't conflict merges as it is. To resolve a conflict, merge the base into the PR branch, resolve it, let CI run on the new head, run the gate again or ask for approval of the new head, and then merge right away, before another merge can make it conflict again. A `review:human` PR whose head changed needs the human's approval of the new head, so ask for it in the same message that reports the conflict resolution.
+- its lane still allows the merge: `review:ai` with the gate passed, or `review:human` with a recorded human approval of this head and the gate's other conditions passed;
+- it isn't a draft;
+- its head SHA is still the one that was checked;
+- it still has no merge conflicts;
+- no reviewer's latest review requests changes;
+- CI is still green;
+- the base branch's CI is not red, unless this PR is the fix, as described in [After the merge](#after-the-merge).
 
-When several PRs are ready, merge them one at a time, and check each one for conflicts again right before its merge, because the previous merge can make it conflict. Start with the one that touches the most widely shared files, such as a changelog, an index, or a decision log. Only a PR that now conflicts brings in the base. The others merge without catching up.
+Labels, reviews, checks, and conflicts can change while the gate runs, and `expectedHeadSha` guards only the head. These are reads, not a second gate: don't run anything again that the gate already settled for this head.
 
-Merge with `merge_pull_request`, and pass the head SHA you checked as `expectedHeadSha`, as shown in the [MCP reference](github-mcp-tools.md#merge-a-pull-request). If someone pushed after the gate, the merge fails instead of shipping unchecked commits.
+**Conflicts.** Bring in the base branch at this point only when the PR conflicts with it, or when a reviewer asked for it. A PR that is behind the base but doesn't conflict merges as it is. To resolve a conflict, merge the base into the PR branch, resolve it, and let CI run on the new head. Then check the gate for what changed, as described under [Merge gate](#merge-gate), or ask the human to approve the new head, and merge right away, before another merge can make it conflict again. A `review:human` PR whose head changed needs the human's approval of the new head, so ask for it in the same message that reports the conflict resolution.
+
+**Several ready PRs.** Merge them one at a time, and check each one for conflicts again right before its merge, because the previous merge can make it conflict. Start with the one that touches the most widely shared files, such as a changelog, an index, or a decision log. Only a PR that now conflicts brings in the base. The others merge without catching up.
+
+**The call.** Merge with `merge_pull_request`, and pass the head SHA you checked as `expectedHeadSha`, as shown in the [MCP reference](github-mcp-tools.md#merge-a-pull-request). If someone pushed after the gate, the merge fails instead of shipping unchecked commits.
 
 - **One issue:** squash.
 - **Several issues integrated in one PR:** use a merge commit. It keeps each issue's commits, along with their signatures, in the history.

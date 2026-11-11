@@ -51,7 +51,8 @@ If the user declines, record that in the handoff and continue the original reque
 4. **Priority mirror:** mirror the board Priority in `priority:*` labels (baseline), in an organization Priority issue field if one exists, or nowhere. The board field stays the source of truth.
 5. **Blank issues:** whether the template chooser should hide blank issues from people without write access (baseline: hide).
 6. **Triage authority:** agents triage by best judgment, setting Priority and moving accepted work out of `Triage` (baseline), or humans approve every item out of `Triage`.
-7. **Merge authority:** agents merge `review:ai` pull requests after the [merge gate](pull-requests.md#merge-gate) (baseline), or humans merge every pull request. Either way, every pull request carries a review label. With the baseline, an agent also merges a `review:human` pull request once a human approves its head commit for merging. The baseline gate expects a pre-commit review gate in the repository, such as the codex-review gate. Without one, agents don't merge `review:ai` pull requests unless repository guidance waives that condition.
+7. **Merge authority:** agents merge `review:ai` pull requests after the [merge gate](pull-requests.md#merge-gate) (baseline), or humans merge every pull request. Either way, every pull request carries a review label. With the baseline, an agent also merges a `review:human` pull request once a human approves its head commit for merging. The gate works best with a pre-commit review gate in the repository, such as the codex-review gate, because every commit is then reviewed when it is made. Without one, the merging agent has each pull request's changes reviewed once at the gate.
+8. **Human review:** which changes a person must review. The baseline is every change to what a user sees or how they interact with it, a change to how the repository works, such as its guidance, CI, pre-commit gate, or templates, and a pull request from a fork, as described in [Classify](pull-requests.md#classify). Record any area the repository reserves for a person in its guidance.
 
 ## Baseline profile
 
@@ -95,8 +96,8 @@ Create only the labels that are missing. Keep GitHub's default labels. Never ren
 | `security` | `67060C` | Security issue or hardening |
 | `area:ci` | `D5E697` | CI, release, and deployment pipelines |
 | `area:<component>` | distinct per label | One per confirmed component. The description names its path |
-| `review:human` | `D93F0B` | Needs a human reviewer before merging: interface or UX changes, or a change that isn't clearly mergeable. An agent merges it only after a human approves it |
-| `review:ai` | `0E8A16` | Clearly mergeable. An agent merges it after CI, the pre-commit review, and the acceptance evidence all pass |
+| `review:ai` | `0E8A16` | An agent merges it after the merge gate passes |
+| `review:human` | `D93F0B` | A person has to see or try the result before it merges, as for every interface change. An agent merges it only after a human approves it |
 
 Every issue gets at least one `area:*` label, or `documentation` for documentation-only work. Each issue carries exactly one `priority:*` label when labels mirror Priority. Every pull request carries exactly one `review:*` label, as described in [pull requests](pull-requests.md#classify).
 
@@ -142,7 +143,7 @@ The templates never assign anyone. Assignment is decided when work starts. They 
 
 - Issues are enabled.
 - The Project is linked to the repository, so the repository's **Projects** tab lists it and auto-add can target it.
-- The resulting conventions are recorded in repository guidance: the Project owner, title, and number, the vocabulary above, the language, the priority mirror, the triage authority, the merge authority, and that the issue templates come from this skill in the chosen locale. Record names, never IDs.
+- The resulting conventions are recorded in repository guidance: the Project owner, title, and number, the vocabulary above, the language, the priority mirror, the triage authority, the merge authority, the areas reserved for human review, the commands the merge gate checks, and that the issue templates come from this skill in the chosen locale. Record names, never IDs.
 
 ## What MCP can apply
 

@@ -141,14 +141,14 @@ Call `issue_write`:
   "owner": "octo-org",
   "repo": "widgets",
   "title": "Make upload retries observable",
-  "body": "## Outcome\n...\n\n## Acceptance criteria\n- [ ] ...",
+  "body": "## Why\n...\n\n## What\n...\n\n## State\nNot started.\n\n## Acceptance criteria\n- [ ] ...\n\n## Pointers\n- ...",
   "labels": ["area:api", "type:enhancement"],
   "assignees": ["octocat"],
   "type": "Task"
 }
 ```
 
-Include only fields confirmed to exist. Omit `type`, labels, or assignees when unsupported or unspecified. Search for duplicates before creation.
+Write the body to the [work-item format](work-item-format.md#issue-body). Include only fields confirmed to exist. Omit `type`, labels, or assignees when unsupported or unspecified, and leave `assignees` out unless the user names someone. Search for duplicates before creation.
 
 ### Add an issue to a project
 
@@ -329,7 +329,7 @@ If the connected `issue_write` schema exposes `parent_issue_number`, create the 
   "owner": "octo-org",
   "repo": "widgets",
   "title": "Emit retry metrics",
-  "body": "## Outcome\n...",
+  "body": "## Why\n...",
   "parent_issue_number": 40
 }
 ```
@@ -437,6 +437,8 @@ A token without access to checks gets `403 Resource not accessible by personal a
 
 Count a job as passed only when it finished with success or its own conditions skipped it. Don't infer CI from the PR's `mergeable_state`. GitHub computes it in the background, it also reflects reviews and branch rules, and it doesn't name a failing check.
 
+The merge gate also needs to know which commands CI ran, so that it runs only the rest itself. Read the workflow file at the PR's head commit with `get_file_contents` and its `ref` input, and match its steps with the steps that `list_workflow_jobs` reports as succeeded. A step that was skipped didn't run its command, and a step that can't fail, through `continue-on-error` or `|| true`, proves nothing.
+
 ### Merge a pull request
 
 Merge a `review:ai` PR only after the merge gate in the [pull request reference](pull-requests.md#merge-gate) passes, and a `review:human` PR only after a human approved its head commit for merging, as described in [Human review](pull-requests.md#human-review). Fresh `pull_request_read` reads must show the same head SHA, no merge conflicts, no change requests, and green CI. The head doesn't need to contain the base branch's latest commits. Pass that SHA:
@@ -452,7 +454,7 @@ Merge a `review:ai` PR only after the merge gate in the [pull request reference]
 }
 ```
 
-Use `merge` instead of `squash` for a PR that integrates several issues. If the head moved after the gate, the call fails, and the gate runs again on the new head. Re-read the PR to confirm that it merged.
+Use `merge` instead of `squash` for a PR that integrates several issues. If the head moved after the gate, the call fails. Then check the gate again for what the new commits change, as described under [Merge gate](pull-requests.md#merge-gate). Re-read the PR to confirm that it merged.
 
 ## Capability gaps
 

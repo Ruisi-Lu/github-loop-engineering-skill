@@ -67,6 +67,8 @@ In a `zh-TW` repository, use the headings from the `zh-TW` templates: `背景 (W
 
 Make acceptance criteria independently verifiable. Avoid vague items such as "works correctly", "tests pass", or "handle edge cases" unless they name the expected behavior or test.
 
+When the work adds or changes something a user sees, link the approved design or write the exact copy in the issue. A person still confirms the result in a [human review](pull-requests.md#classify) of the pull request, and a settled design keeps that review a confirmation rather than a redesign.
+
 List every prerequisite issue in `Pointers` and also record it as a native blocked-by dependency. The list keeps the body readable without the dependency view, and the dependency lets the Project tell ready work from waiting work.
 
 ## Parent issue

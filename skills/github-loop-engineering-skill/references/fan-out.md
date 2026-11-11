@@ -1,6 +1,6 @@
 # Coordinating parallel agents
 
-Use this reference when you fan out a parent issue's ready leaves to parallel agents, as described in [Fan out from a parent issue](../SKILL.md#fan-out-from-a-parent-issue), and when you resume a fan-out after an interruption. You are the coordinator: you claim the leaves, brief the agents, review and verify their work, open and merge the pull requests, and keep GitHub current. Each leaf agent implements one leaf and reports back.
+Use this reference when you fan out a parent issue's ready leaves to parallel agents, as described in [Fan out from a parent issue](../SKILL.md#fan-out-from-a-parent-issue), and when you resume a fan-out after an interruption. You are the coordinator: you claim the leaves, brief the agents, check their reports, open and merge the pull requests, and keep GitHub current. Each leaf agent implements one leaf and reports back.
 
 These practices come from a production run in which parallel agents completed a milestone of several dozen leaves. Repository guidance wins over them.
 
@@ -17,13 +17,13 @@ These practices come from a production run in which parallel agents completed a 
 
 ## Who writes what
 
-Decide which writes stay with you before you hand out the first leaf. By default, keep these with the coordinator:
+Decide which writes stay with you before you hand out the first leaf. By default, the coordinator keeps:
 
 - pushing branches and opening pull requests;
 - review labels, Status, Priority, assignees, milestones, and dependencies;
 - merges.
 
-A leaf agent then works on its own branch in its own workspace and stops before the first push. It reports its head commit, its evidence, and a pull request body draft. On GitHub it changes only its own issue: the `State` section and the acceptance criteria it has evidence for, keeping the rest of the body byte for byte, plus implementation notes as comments. It never merges, and it doesn't create issues. Follow-up work goes into its report as a proposal. When its leaf turns out too large, it stops at a clean point and proposes the parts in its report, and you [split the leaf](../SKILL.md#split-an-issue-that-turns-out-too-large).
+A leaf agent works on its own branch in its own workspace and stops before the first push. It reports its head commit, its evidence, and a pull request body draft. On GitHub it changes only its own issue: the `State` section and the acceptance criteria it has evidence for, keeping the rest of the body byte for byte, plus implementation notes as comments. It never merges, and it doesn't create issues. Follow-up work goes into its report as a proposal. When its leaf turns out too large, it stops at a clean point and proposes the parts in its report, and you [split the leaf](../SKILL.md#split-an-issue-that-turns-out-too-large).
 
 The reasons:
 
@@ -42,6 +42,7 @@ Write one brief for the whole run, in a file every agent reads, and point each a
 - the [write split](#who-writes-what), including the issue sections it may change;
 - GitHub access through MCP only, with the tool notes it needs. For example, `issue_read` can't resolve a pull request number, so a pull request's labels come from `pull_request_read`;
 - commit conventions, signing, and the pre-commit review gate, which it never bypasses, not even for a work-in-progress commit;
+- running the repository's checks on its final head commit in a clean checkout, such as a new git worktree of that commit with no uncommitted or untracked files, and reporting each command with its result, because that run is the one the pull request records;
 - bringing in the base branch only when you ask for it, because its pull request conflicts with the base at its turn to merge, and then with a merge rather than a rebase, because a rebase rewrites commits without running the pre-commit hook. A pull request that is only behind the base doesn't catch up;
 - where heavy builds and tests run, and the lock on any shared test environment, so parallel agents don't overload one machine or deploy over each other;
 - where test evidence and scratch files go, and what never goes into them in a public repository;
@@ -58,10 +59,11 @@ Ask for a short report in this shape, so you can check it item by item:
 - Pull request body draft: <path>
 - Review lane: review:ai or review:human, and why
 - Commits: each commit and its pre-commit review outcome (passed the first time, or what it blocked and how that was fixed)
+- Checks: each command, where it ran, the commit it ran on, and its result
 - Acceptance criteria: each criterion with its evidence (command and result, or test report path), or "not met" and why
-- Checks: each command, where it ran, and its result
 - Docs changed: paths
 - Follow-up proposals: one line each
+- Open decisions: none, or each question only the user can answer, with the options
 - Split proposal: none, or the parts the leaf should split into, which part is done, and which criteria each part proves
 - Descoping proposal: none, or each criterion or scope line that looks unneeded and why. The agent still meets every criterion unless the coordinator relays the user's decision to drop it
 - Side effects: anything left running or changed on shared machines or environments
@@ -70,12 +72,13 @@ Ask for a short report in this shape, so you can check it item by item:
 
 ## Review before anything goes out
 
-The report is a claim. Before you push:
+The report is a claim. Check it against what you can read, and don't do the agent's work again:
 
 1. Read the diff, the commits, and the pull request body draft. Check them against the issue's acceptance criteria and the repository's rules. In a public repository, also check them for secrets, internal hostnames or addresses, customer names, and personal data.
-2. Decide the review lane from the change yourself, as in [Classify](pull-requests.md#classify). Don't copy the agent's choice.
-3. Audit each commit's pre-commit review in the agent's transcript or the host's record of its tool calls, and rerun the checks in a clean checkout, as the [merge gate](pull-requests.md#merge-gate) requires.
-4. Push, open the pull request, and label it, as in [Open](pull-requests.md#open). Read CI yourself, and send any failure back to the agent, which fixes it with a new commit.
+2. Decide the review lane from the change yourself, as in [Classify](pull-requests.md#classify). Don't copy the agent's choice. Ask the user the report's open decisions as [pending decisions](../SKILL.md#mark-or-clear-a-blocker) now, so they are settled before the pull request opens.
+3. In the agent's transcript or the host's record of its tool calls, confirm that each commit passed the pre-commit review without a bypass, and that the reported checks ran on the head commit in a clean checkout and passed. Run a check yourself only when that record doesn't show it.
+4. Write what you confirmed into the pull request body's [verification record](pull-requests.md#verification-record). You are the one who can read the agent's transcript, so your entry is what the merge gate and every later reviewer rely on, and nobody has to audit those commits or run those checks again.
+5. Push, open the pull request, and label it, as in [Open](pull-requests.md#open). Read CI yourself, and send any failure back to the agent, which fixes it with a new commit.
 
 ## Verify risky leaves independently
 
@@ -83,15 +86,17 @@ For a leaf with security or design risk, such as authentication, tenant isolatio
 
 Hand each finding back to the implementing agent with a concrete fix, a regression test, and a mutation that undoes the fix and must make that test fail. Then review the fix yourself for variants of the same finding. A fix often closes the reported case and leaves a sibling open.
 
+Write the verification into the pull request's [verification record](pull-requests.md#verification-record) as its security review: the commit it covered, the verifier's model, the claims it attacked, and each finding with its fix. This is the one independent attack on the change. Whoever reviews or merges the pull request later reads that entry instead of attacking the same code again.
+
 ## Resume after an interruption
 
-A usage limit, a crash, or a context reset can stop one agent or all of them at once. The agents' workspaces stay. Before you resume anyone, rebuild the state from GitHub: the parent's children, their Status, the open pull requests, and their CI. Then read your [run log](#keep-a-run-log) for what GitHub doesn't hold.
+A usage limit, a crash, or a context reset can stop one agent or all of them at once. The agents' workspaces stay. Before you resume anyone, rebuild the state from GitHub: the parent's children, their Status, the open pull requests, their CI, and their verification records. Then read your [run log](#keep-a-run-log) for what GitHub doesn't hold.
 
 A resumed agent, or a new agent that takes over a leaf, first rechecks its own state: its branch and uncommitted changes, anything it pushed, the locks it holds, and the jobs it started.
 
 ## Keep a run log
 
-GitHub holds the state of the work, but not the coordinator's own state: which agent has which leaf, workspace paths, background jobs and locks, and the next step for each item. Keep that in a local file outside the repository, update it at each transition, and read it after a context reset. The log never replaces an issue's `State`. Anything another person needs goes to GitHub.
+GitHub holds the state of the work, but not the coordinator's own state: which agent has which leaf, workspace paths, background jobs and locks, and the next step for each item. Keep that in a local file outside the repository, update it at each transition, and read it after a context reset. The log never replaces an issue's `State` or a pull request's verification record. Anything another person needs goes to GitHub.
 
 ## Clean up
 
