@@ -4,6 +4,10 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-11-12
+
+This release stops code review at the pull request. Repositories without a pre-commit review gate should install one, or review commits locally and record the result, before upgrading, because their pull requests otherwise fail the merge gate.
+
 ### Changed
 
 - Pull requests no longer get a code review (`references/pull-requests.md`). Teams that use this skill review code locally under their own AI controls, so reviewing a pull request now checks only that its content meets what the skill requires, such as its verification record, label, CI, acceptance evidence, and closing issues, and never reads the diff to judge the code. A commit without a pre-commit review entry, or a high-risk change without a security review entry, fails the gate and goes back to the author's side to be reviewed locally and recorded. Before, the merging agent reviewed such commits or ran the security review at the gate. Preparing a review interview no longer reviews code either. A pull request from a fork needs a person with write access to review its commits locally.
@@ -191,7 +195,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v2.0.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v3.0.0...HEAD
+[3.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v2.0.0...github-loop-engineering--v3.0.0
 [2.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.13.0...github-loop-engineering--v2.0.0
 [1.13.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.12.0...github-loop-engineering--v1.13.0
 [1.12.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.11.0...github-loop-engineering--v1.12.0
