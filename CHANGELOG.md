@@ -4,6 +4,17 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+This release adds a condition to the merge gate. Open pull requests without an acceptance check in their verification record go back to the author's side for one before they can merge.
+
+### Added
+
+- An acceptance check before every pull request opens (`references/pull-requests.md#acceptance-check`). A fresh agent that didn't write the change, on a smaller and faster model than the implementing agent's, reads the diff at the head commit against each acceptance criterion of the closing issues and reports each one as met, not met, or unclear, whether its evidence exercises it, and any change the issue doesn't ask for or excludes. It gets the issues, the diff, and the claimed evidence, not the implementing agent's reasoning. It doesn't rerun checks, judge code quality, or attack the change, so it is cheap enough for every change, not only risky ones. Its result is the verification record's new acceptance check entry. Before, only the implementing agent itself, or a fan-out coordinator reading the diff, compared the change with its criteria, and only risky leaves got an independent agent.
+- A fan-out coordinator has the acceptance check run on every leaf, instead of comparing each diff with its criteria itself (`references/fan-out.md#review-before-anything-goes-out`).
+
+### Changed
+
+- Merge gate condition 5 requires an acceptance check on record that covers every criterion (`references/pull-requests.md#merge-gate`). A pull request without one goes back to the author's side, like a missing pre-commit or security review, and the check doesn't run at the gate.
+
 ## [3.0.0] - 2026-11-12
 
 This release stops code review at the pull request. Repositories without a pre-commit review gate should install one, or review commits locally and record the result, before upgrading, because their pull requests otherwise fail the merge gate.

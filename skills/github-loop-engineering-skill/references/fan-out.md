@@ -74,11 +74,12 @@ Ask for a short report in this shape, so you can check it item by item:
 
 The report is a claim. Check it against what you can read, and don't do the agent's work again:
 
-1. Read the diff, the commits, and the pull request body draft. Check them against the issue's acceptance criteria and the repository's rules. In a public repository, also check them for secrets, internal hostnames or addresses, customer names, and personal data.
-2. Decide the review lane from the change yourself, as in [Classify](pull-requests.md#classify). Don't copy the agent's choice. Ask the user the report's open decisions as [pending decisions](../SKILL.md#mark-or-clear-a-blocker) now, so they are settled before the pull request opens.
-3. In the agent's transcript or the host's record of its tool calls, confirm that each commit passed the pre-commit review without a bypass, and that the reported checks ran on the head commit in a clean checkout and passed. Run a check yourself only when that record doesn't show it.
-4. Write what you confirmed into the pull request body's [verification record](pull-requests.md#verification-record). You are the one who can read the agent's transcript, so your entry is what the merge gate and every later reviewer rely on, and nobody has to audit those commits or run those checks again.
-5. Push, open the pull request, and label it, as in [Open](pull-requests.md#open). Read CI yourself, and send any failure back to the agent, which fixes it with a new commit.
+1. Read the diff, the commits, and the pull request body draft. Check them against the repository's rules. In a public repository, also check them for secrets, internal hostnames or addresses, customer names, and personal data.
+2. Have a fresh agent run the [acceptance check](pull-requests.md#acceptance-check) on every leaf, on a smaller and faster model than the leaf agent's. Give it the issue, the branch and head commit, and the report's acceptance evidence, but not the leaf agent's reasoning. It is cheap enough to run on every leaf, and it keeps the line-by-line comparison with the criteria out of your own context. Send each "not met" back to the leaf agent, which fixes it with a new commit, and have only the criteria the fix touches checked again.
+3. Decide the review lane from the change yourself, as in [Classify](pull-requests.md#classify). Don't copy the agent's choice. Ask the user the report's open decisions as [pending decisions](../SKILL.md#mark-or-clear-a-blocker) now, so they are settled before the pull request opens.
+4. In the agent's transcript or the host's record of its tool calls, confirm that each commit passed the pre-commit review without a bypass, and that the reported checks ran on the head commit in a clean checkout and passed. Run a check yourself only when that record doesn't show it.
+5. Write what you confirmed, and the acceptance check's result, into the pull request body's [verification record](pull-requests.md#verification-record). You are the one who can read the agent's transcript, so your entry is what the merge gate and every later reviewer rely on, and nobody has to audit those commits or run those checks again.
+6. Push, open the pull request, and label it, as in [Open](pull-requests.md#open). Read CI yourself, and send any failure back to the agent, which fixes it with a new commit.
 
 ## Verify risky leaves independently
 
