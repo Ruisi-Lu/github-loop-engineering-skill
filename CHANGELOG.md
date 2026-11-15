@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-11-15
+
 This release adds a condition to the merge gate. Open pull requests without an acceptance check in their verification record go back to the author's side for one before they can merge.
 
 ### Added
@@ -206,7 +208,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v3.0.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.0.0...HEAD
+[4.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v3.0.0...github-loop-engineering--v4.0.0
 [3.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v2.0.0...github-loop-engineering--v3.0.0
 [2.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.13.0...github-loop-engineering--v2.0.0
 [1.13.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.12.0...github-loop-engineering--v1.13.0
