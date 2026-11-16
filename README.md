@@ -37,7 +37,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 ## Why this skill
 
 - **Cold-startable:** every issue passes a cold-start check, so a new collaborator or a fresh agent session can act on it without chat history.
-- **Parallel by design:** a parent issue's sub-issues and blocked-by dependencies form a work graph. Any agent can take the parent, query the children that can start now, and hand them to parallel agents. The coordinating agent gives every agent the same written brief, keeps pushes and merges to itself, reviews what goes out, has a fresh agent on a smaller model check every leaf against its issue, and has risky leaves attacked by an independent verifier.
+- **Parallel by design:** a parent issue's sub-issues and blocked-by dependencies form a work graph. Any agent can take the parent, query the children that can start now, and hand them to parallel agents. The coordinating agent gives every agent the same written brief, answers the questions the brief and the issue don't, keeps pushes and merges to itself, reviews what goes out, has a fresh agent on a smaller model check every leaf against its issue, and has risky leaves attacked by an independent verifier.
 - **Loop-native:** every mutation is one pass through discover, frame, act, verify, and persist.
 - **Evidence-gated:** acceptance criteria and current read-back state control lifecycle transitions.
 - **Durable:** GitHub Issues and Projects carry context across agents, sessions, and human handoffs.
@@ -61,7 +61,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn â€œI changed itâ
 - cold-startable issue creation, triage, assignment, priority, and status;
 - project item attachment and custom field updates;
 - sub-issue decomposition into parallel work graphs, with dependencies and hierarchy verification;
-- fan-out of a parent issue's ready children to parallel agents: the brief, the split of GitHub writes, agent reports, independent verification, and resuming after an interruption;
+- fan-out of a parent issue's ready children to parallel agents: the brief, the split of GitHub writes, agents' questions to the coordinator, agent reports, independent verification, and resuming after an interruption;
 - blockers, pending decisions asked in batches, implementation notes, and PR/commit references;
 - a verification record on every pull request, two review lanes, and an evidence-gated merge;
 - evidence-backed acceptance criteria;
@@ -81,7 +81,7 @@ This is the lifecycle control and memory layer, not a coding-agent runtime. When
 | `skills/github-loop-engineering-skill/references/initialization.md` | First-use detection, authorization gate, and baseline for labels, board, automations, and templates |
 | `skills/github-loop-engineering-skill/references/issue-templates.md` | How the skill installs issue templates and keeps them current |
 | `skills/github-loop-engineering-skill/references/pull-requests.md` | The verification record, opening and classifying pull requests, the merge gate, human review, merging, and post-merge checks |
-| `skills/github-loop-engineering-skill/references/fan-out.md` | Coordinating parallel agents: write split, brief, report, checking reports, independent verification, resume, and cleanup |
+| `skills/github-loop-engineering-skill/references/fan-out.md` | Coordinating parallel agents: write split, brief, report, answering agents' questions, checking reports, independent verification, resume, and cleanup |
 | `skills/github-loop-engineering-skill/assets/issue-templates/` | Cold-start issue templates (`en`, `zh-TW`) that initialization installs into `.github/ISSUE_TEMPLATE/` |
 | `skills/project-quiz/SKILL.md` | On-demand, read-only quiz built from merged pull requests to help someone learn the project |
 | `.claude-plugin/plugin.json` | Claude Code plugin manifest and release version |

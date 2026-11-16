@@ -1,6 +1,6 @@
 # Coordinating parallel agents
 
-Use this reference when you fan out a parent issue's ready leaves to parallel agents, as described in [Fan out from a parent issue](../SKILL.md#fan-out-from-a-parent-issue), and when you resume a fan-out after an interruption. You are the coordinator: you claim the leaves, brief the agents, check their reports, open and merge the pull requests, and keep GitHub current. Each leaf agent implements one leaf and reports back.
+Use this reference when you fan out a parent issue's ready leaves to parallel agents, as described in [Fan out from a parent issue](../SKILL.md#fan-out-from-a-parent-issue), and when you resume a fan-out after an interruption. You are the coordinator: you claim the leaves, brief the agents, check their reports, open and merge the pull requests, and keep GitHub current. Each leaf agent implements one leaf, asks you what its issue and the brief don't answer, and reports back.
 
 These practices come from a production run in which parallel agents completed a milestone of several dozen leaves. Repository guidance wins over them.
 
@@ -9,6 +9,7 @@ These practices come from a production run in which parallel agents completed a 
 - [Who writes what](#who-writes-what)
 - [Write one brief](#write-one-brief)
 - [Agent report](#agent-report)
+- [Answer the agents' questions](#answer-the-agents-questions)
 - [Review before anything goes out](#review-before-anything-goes-out)
 - [Verify risky leaves independently](#verify-risky-leaves-independently)
 - [Resume after an interruption](#resume-after-an-interruption)
@@ -46,7 +47,8 @@ Write one brief for the whole run, in a file every agent reads, and point each a
 - bringing in the base branch only when you ask for it, because its pull request conflicts with the base at its turn to merge, and then with a merge rather than a rebase, because a rebase rewrites commits without running the pre-commit hook. A pull request that is only behind the base doesn't catch up;
 - where heavy builds and tests run, and the lock on any shared test environment, so parallel agents don't overload one machine or deploy over each other;
 - where test evidence and scratch files go, and what never goes into them in a public repository;
-- the [report](#agent-report) to send, and when to stop: done, blocked by something outside the leaf, or the same failure twice without a new approach.
+- to [ask you](#answer-the-agents-questions), not the user and not another agent, whatever its issue, the brief, and the repository don't answer, instead of guessing, and how a question reaches you on this host;
+- the [report](#agent-report) to send, and when to stop: done, blocked by something outside the leaf, a question it can't work around while it waits for your answer, or the same failure twice without a new approach.
 
 Keep a brief that names your own machines or habits out of the repository's shared guidance files, because every contributor's agent loads those. Tell agents to commit a checkpoint every hour or so, through the pre-commit gate, so an interruption loses little. Choose each agent's model and effort for its leaf's risk rather than one setting for every leaf.
 
@@ -63,12 +65,25 @@ Ask for a short report in this shape, so you can check it item by item:
 - Acceptance criteria: each criterion with its evidence (command and result, or test report path), or "not met" and why
 - Docs changed: paths
 - Follow-up proposals: one line each
-- Open decisions: none, or each question only the user can answer, with the options
+- Questions: none, or each question still open, what the agent checked, and the options it sees. You decide which ones go to the user
 - Split proposal: none, or the parts the leaf should split into, which part is done, and which criteria each part proves
 - Descoping proposal: none, or each criterion or scope line that looks unneeded and why. The agent still meets every criterion unless the coordinator relays the user's decision to drop it
 - Side effects: anything left running or changed on shared machines or environments
 - Not done: what the agent couldn't do, and why
 ```
+
+## Answer the agents' questions
+
+A leaf agent asks you when its issue, the brief, and the repository don't answer a question, instead of guessing or stopping. You answer it yourself. Don't route it to a separate advisor agent: you hold the run's context, such as what other leaves changed or decided, which shared files they touch, and what the user already decided in this run, and an advisor would first need all of that in its brief. A leaf agent doesn't ask the user directly either, so every question reaches the user through you, once, together with the other agents' questions.
+
+- Answer what the run settles: another leaf's interface or the shared file it touches, how the brief applies, or a decision the user already made. Point to where it is recorded when it is.
+- A question only the user can answer, such as dropping a criterion or a product tradeoff, goes to the user as a [pending decision](../SKILL.md#mark-or-clear-a-blocker). Don't answer it for them. The agent works on what the question doesn't touch, or stops at a clean point.
+- Don't design the leaf for the agent. Name the constraints that bind it and leave the design to the agent, so the change you review later is its own.
+- When an answer changes what the leaf builds or how a criterion reads, write it into the issue as an implementation note when you answer. Then someone who resumes the leaf cold, and the [acceptance check](pull-requests.md#acceptance-check), read what the agent was told. An answer that only explains needs no note.
+- Give the acceptance check and the [verifier](#verify-risky-leaves-independently) the issue, not your conversation with the agent. The issue carries every answer that changed the work.
+- When a second agent asks the same question, the brief is missing it. Add it to the brief, so every later agent reads it, and answer by pointing there.
+
+How the question reaches you depends on the host. When an agent can message you while it runs, it asks and waits. When it can't, it commits a checkpoint through the pre-commit gate, stops, and puts the question in its report. You answer and resume the same agent, or start a new one on its workspace when the host can't resume it.
 
 ## Review before anything goes out
 
@@ -76,7 +91,7 @@ The report is a claim. Check it against what you can read, and don't do the agen
 
 1. Read the diff, the commits, and the pull request body draft. Check them against the repository's rules. In a public repository, also check them for secrets, internal hostnames or addresses, customer names, and personal data.
 2. Have a fresh agent run the [acceptance check](pull-requests.md#acceptance-check) on every leaf, on a smaller and faster model than the leaf agent's. Give it the issue, the branch and head commit, and the report's acceptance evidence, but not the leaf agent's reasoning. It is cheap enough to run on every leaf, and it keeps the line-by-line comparison with the criteria out of your own context. Send each "not met" back to the leaf agent, which fixes it with a new commit, and have only the criteria the fix touches checked again.
-3. Decide the review lane from the change yourself, as in [Classify](pull-requests.md#classify). Don't copy the agent's choice. Ask the user the report's open decisions as [pending decisions](../SKILL.md#mark-or-clear-a-blocker) now, so they are settled before the pull request opens.
+3. Decide the review lane from the change yourself, as in [Classify](pull-requests.md#classify). Don't copy the agent's choice. Answer the report's questions as in [Answer the agents' questions](#answer-the-agents-questions), and ask the user those only they can answer as [pending decisions](../SKILL.md#mark-or-clear-a-blocker) now, so they are settled before the pull request opens.
 4. In the agent's transcript or the host's record of its tool calls, confirm that each commit passed the pre-commit review without a bypass, and that the reported checks ran on the head commit in a clean checkout and passed. Run a check yourself only when that record doesn't show it.
 5. Write what you confirmed, and the acceptance check's result, into the pull request body's [verification record](pull-requests.md#verification-record). You are the one who can read the agent's transcript, so your entry is what the merge gate and every later reviewer rely on, and nobody has to audit those commits or run those checks again.
 6. Push, open the pull request, and label it, as in [Open](pull-requests.md#open). Read CI yourself, and send any failure back to the agent, which fixes it with a new commit.
