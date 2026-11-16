@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-11-16
+
 ### Added
 
 - Leaf agents ask the coordinator (`references/fan-out.md#answer-the-agents-questions`). In a fan-out, a leaf agent asks the coordinating agent whatever its issue, the brief, and the repository don't answer, instead of guessing or stopping, and the coordinator answers it itself rather than handing it to a separate advisor agent, because it holds the run's context: what other leaves changed or decided, which shared files they touch, and what the user already decided. The coordinator takes only what the user alone can decide to the user, doesn't design the leaf for the agent, writes every answer that changes the work into the issue as an implementation note, and adds a question asked twice to the brief. On a host where an agent can't message the coordinator while it runs, the agent commits a checkpoint, stops with the question in its report, and is resumed after the answer. Before, a leaf agent could only stop or list open decisions for the user at the end of its work.
@@ -216,7 +218,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.0.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.1.0...HEAD
+[4.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.0.0...github-loop-engineering--v4.1.0
 [4.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v3.0.0...github-loop-engineering--v4.0.0
 [3.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v2.0.0...github-loop-engineering--v3.0.0
 [2.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v1.13.0...github-loop-engineering--v2.0.0
