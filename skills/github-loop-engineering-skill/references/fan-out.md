@@ -12,6 +12,7 @@ These practices come from a production run in which parallel agents completed a 
 - [Answer the agents' questions](#answer-the-agents-questions)
 - [Review before anything goes out](#review-before-anything-goes-out)
 - [Verify risky leaves independently](#verify-risky-leaves-independently)
+- [Batch leaves into one pull request](#batch-leaves-into-one-pull-request)
 - [Resume after an interruption](#resume-after-an-interruption)
 - [Keep a run log](#keep-a-run-log)
 - [Clean up](#clean-up)
@@ -94,7 +95,7 @@ The report is a claim. Check it against what you can read, and don't do the agen
 3. Decide the review lane from the change yourself, as in [Classify](pull-requests.md#classify). Don't copy the agent's choice. Answer the report's questions as in [Answer the agents' questions](#answer-the-agents-questions), and ask the user those only they can answer as [pending decisions](../SKILL.md#mark-or-clear-a-blocker) now, so they are settled before the pull request opens.
 4. In the agent's transcript or the host's record of its tool calls, confirm that each commit passed the pre-commit review without a bypass, and that the reported checks ran on the head commit in a clean checkout and passed. Run a check yourself only when that record doesn't show it.
 5. Write what you confirmed, and the acceptance check's result, into the pull request body's [verification record](pull-requests.md#verification-record). You are the one who can read the agent's transcript, so your entry is what the merge gate and every later reviewer rely on, and nobody has to audit those commits or run those checks again.
-6. Push, open the pull request, and label it, as in [Open](pull-requests.md#open). Read CI yourself, and send any failure back to the agent, which fixes it with a new commit.
+6. Push, open the pull request, and label it, as in [Open](pull-requests.md#open). When other ready leaves change the same files and meet the conditions in [Batch leaves into one pull request](#batch-leaves-into-one-pull-request), batch them into one pull request instead. Read CI yourself, and send any failure back to the agent, which fixes it with a new commit. A batch that fails is handled as that section describes.
 
 ## Verify risky leaves independently
 
@@ -104,16 +105,42 @@ Hand each finding back to the implementing agent with a concrete fix, a regressi
 
 Write the verification into the pull request's [verification record](pull-requests.md#verification-record) as its security review: the commit it covered, the verifier's model, the claims it attacked, and each finding with its fix. This is the one independent attack on the change. Whoever reviews or merges the pull request later reads that entry instead of attacking the same code again.
 
+## Batch leaves into one pull request
+
+Every pull request runs CI, and leaves that change the same files conflict with each other one merge at a time, each resolution followed by another CI run. When several leaves that change the same files are ready together, combine them locally into one batch branch and open one pull request for it. CI runs once for the whole batch, you resolve the conflicts between its leaves once, before anything is pushed, and the checks on the batch's head catch two leaves that break only together before they reach the base branch. Only the batch branch is pushed. The leaves' own branches stay local.
+
+**Which leaves go together.** A batch holds leaves that:
+
+- each passed [review](#review-before-anything-goes-out) on its own branch: its report checked, its acceptance check run, and every finding fixed;
+- change the same files or the same [shared hotspot](../SKILL.md#shared-hotspots), so their conflicts are resolved once. Leaves that share no file save only CI time, while each one widens what a single failure holds back. Batch them only when CI time is what limits the run;
+- are all `review:ai`. A `review:human` leaf would make every other leaf in the batch wait for the reviewer;
+- need no security review. A high-risk leaf, one that [independent verification](#verify-risky-leaves-independently) covers, keeps its own pull request, so its security review covers exactly its diff and it can be reverted alone;
+- are ready now. Don't hold a finished leaf back for a sibling still in progress. It goes out alone, or with the next batch if that one is ready first.
+
+Don't batch when the repository allows only squash merges or a linear history, because a batch needs a merge commit to keep each leaf's commits and to revert one leaf alone. Keep a batch small: at most five leaves, unless repository guidance sets another limit. A larger batch is harder to read, and one failure in it holds back more work.
+
+**Build it.**
+
+1. Create the batch branch from the base branch's tip.
+2. Merge each leaf's branch into it with `git merge --no-ff`, one leaf at a time, starting with the leaf that changes the most shared files. Never squash or rebase a leaf. A merge keeps the leaf's commits, with their signatures and their pre-commit review records, and its merge commit lets you revert that one leaf later.
+3. Resolve a conflict in its merge commit. A resolution is new code, so it goes through the pre-commit review gate like any other commit. Check what each merge changed beyond its two parents with `git show --remerge-diff <merge commit>`. A merge that changed nothing there needs no review entry.
+4. When a resolution changes code or evidence that a leaf's acceptance criterion depends on, have that criterion checked again on the batch's head, as in [Acceptance check](pull-requests.md#acceptance-check). The other criteria keep their results, because the leaves' commits are unchanged.
+5. Run the repository's checks once on the batch's head in a clean checkout. This is the run the pull request records. Each leaf's own run on its head showed that the leaf works alone, so a failure here comes from the combination or a resolution.
+
+**When the batch fails.** Find the leaf, or the pair of leaves, behind the failure, for example by rebuilding the batch without one leaf at a time. When the fix is quick, the leaf agent fixes it with a new commit on its own branch, and you merge that branch into the batch again. Otherwise take the leaf out: rebuild the batch without it from the same base commit, and send the leaf out alone or with a later batch. A rebuilt batch has new merge commits, so its resolutions go through the pre-commit review gate again, and its checks run again on the new head. Before the push, rebuilding changes only your local branch. Once the pull request is open, push the rebuilt batch as a new branch with a new pull request, and close the old one with a comment that points to the new one, rather than force-pushing over commits that the old pull request's record names. Update each leaf issue's `State` to name the new pull request, and the leaf you took out to say where it goes next.
+
+**Open and merge it.** Write one pull request for the batch, with the batch layout described in [Open](pull-requests.md#open) and `Closes owner/repo#N` for every leaf. Name the batch pull request in each leaf issue's `State`, so someone who resumes a leaf finds it. Merge it with a merge commit, like any pull request that integrates several issues, as in [Merge](pull-requests.md#merge). When the base branch's CI fails on the merge and one leaf alone is behind it, revert only that leaf's merge commit inside the batch with `git revert -m 1 <leaf merge commit>`. When a pair of leaves is behind it, or a later leaf's merge resolved a conflict with it so the revert doesn't apply cleanly, fix forward or revert the whole batch's merge commit instead. A revert is a new change: it goes through its own pull request and the merge gate like any other. Reopen each issue whose leaf it took out, and update its `State` with the revert and what is left to do. The leaf's commits stay in the base's history, so to land the leaf again later, revert that revert first and then add the fix.
+
 ## Resume after an interruption
 
-A usage limit, a crash, or a context reset can stop one agent or all of them at once. The agents' workspaces stay. Before you resume anyone, rebuild the state from GitHub: the parent's children, their Status, the open pull requests, their CI, and their verification records. Then read your [run log](#keep-a-run-log) for what GitHub doesn't hold.
+A usage limit, a crash, or a context reset can stop one agent or all of them at once. The agents' workspaces stay. Before you resume anyone, rebuild the state from GitHub: the parent's children, their Status, the open pull requests, their CI, and their verification records. Then read your [run log](#keep-a-run-log) for what GitHub doesn't hold. An open batch pull request names its leaves and their heads in its body. A batch that wasn't pushed yet exists only in your workspace and the run log, so rebuild it from the leaves' heads the log names.
 
 A resumed agent, or a new agent that takes over a leaf, first rechecks its own state: its branch and uncommitted changes, anything it pushed, the locks it holds, and the jobs it started.
 
 ## Keep a run log
 
-GitHub holds the state of the work, but not the coordinator's own state: which agent has which leaf, workspace paths, background jobs and locks, and the next step for each item. Keep that in a local file outside the repository, update it at each transition, and read it after a context reset. The log never replaces an issue's `State` or a pull request's verification record. Anything another person needs goes to GitHub.
+GitHub holds the state of the work, but not the coordinator's own state: which agent has which leaf, workspace paths, background jobs and locks, each batch's branch, the leaves it holds with their head commits and the order they were merged in, and the next step for each item. Keep that in a local file outside the repository, update it at each transition, and read it after a context reset. The log never replaces an issue's `State` or a pull request's verification record. Anything another person needs goes to GitHub.
 
 ## Clean up
 
-After a leaf's pull request merged and its issue closed, remove the leaf's workspace and local branch, and release any lock or job it left behind. A host can keep the workspace of an agent that might still be resumed locked. Leave that workspace until the agent is done.
+After a leaf's pull request, or the batch that holds it, merged and its issue closed, remove the leaf's workspace and local branch, and release any lock or job it left behind. A host can keep the workspace of an agent that might still be resumed locked. Leave that workspace until the agent is done.
