@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-11-18
+
 This release changes which pull requests wait for a person. A change to a repository's agent guidance, CI, or pre-commit gate no longer goes to human review: an agent merges it after the merge gate, and asks the user one question when it loosens a rule. Repositories that want a person to review those changes should reserve them in their guidance before upgrading.
 
 ### Added
@@ -230,7 +232,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.1.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v5.0.0...HEAD
+[5.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.1.0...github-loop-engineering--v5.0.0
 [4.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.0.0...github-loop-engineering--v4.1.0
 [4.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v3.0.0...github-loop-engineering--v4.0.0
 [3.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v2.0.0...github-loop-engineering--v3.0.0
