@@ -1,7 +1,7 @@
 {
   "name": "github-loop-engineering",
   "displayName": "GitHub Loop Engineering",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "description": "Evidence-gated Loop Engineering control loop that uses GitHub Issues and Projects as durable state, evidence, and handoff through the GitHub CLI (gh).",
   "author": {
     "name": "Ruisi Lu",

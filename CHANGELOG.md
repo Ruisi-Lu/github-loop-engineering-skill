@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [6.2.0] - 2026-11-22
+
 ### Changed
 
 - A pull request opens complete and is never where verification is finished (`references/pull-requests.md#verification-record`). Once it opens, a reviewer or a merging agent may start on it at any moment, so every entry the merge gate needs is in its body when it opens. Afterwards a comment adds only what happens at the pull request by design: CI results, the gate's result, a human's approval or review interview, and the record for a conflict resolution at its turn to merge or a change a reviewer asked for, written before the merge or the review is asked for again.
@@ -289,7 +291,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v6.1.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v6.2.0...HEAD
+[6.2.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v6.1.0...github-loop-engineering--v6.2.0
 [6.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v6.0.0...github-loop-engineering--v6.1.0
 [6.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v5.1.0...github-loop-engineering--v6.0.0
 [5.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v5.0.0...github-loop-engineering--v5.1.0
