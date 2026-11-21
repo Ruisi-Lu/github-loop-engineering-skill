@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-11-22
+
 This change comes from a batch pull request that merged two days after it opened. Its CI was green 22 minutes after it opened, but its acceptance check had found the end-to-end evidence missing, and the end-to-end runs, the browser runs, the criterion-by-criterion evidence, and a migration's review all happened after the pull request was open. It couldn't pass the merge gate until the last of them was recorded.
 
 ### Changed
@@ -282,7 +284,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v6.0.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v6.1.0...HEAD
+[6.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v6.0.0...github-loop-engineering--v6.1.0
 [6.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v5.1.0...github-loop-engineering--v6.0.0
 [5.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v5.0.0...github-loop-engineering--v5.1.0
 [5.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.1.0...github-loop-engineering--v5.0.0
