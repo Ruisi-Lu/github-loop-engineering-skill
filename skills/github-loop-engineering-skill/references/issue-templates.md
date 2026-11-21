@@ -25,7 +25,7 @@ First-use initialization installs the chosen locale (see [initialization](initia
 
 When repository guidance says the templates come from this skill, compare them with this skill's copy before the first write in a session:
 
-1. Read `.github/ISSUE_TEMPLATE/` on the default branch with `get_file_contents`.
+1. Read `.github/ISSUE_TEMPLATE/` on the default branch, from a fresh fetch of a checkout or with `gh api` as in the [gh reference](gh-cli.md#canonical-operations).
 2. Compare each file with the same file in the recorded locale, after applying the expected local adjustments.
 3. If nothing differs, continue the original request.
 4. If something differs, finish the current transition first. Then propose the update as its own pull request:

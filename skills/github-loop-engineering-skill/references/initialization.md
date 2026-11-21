@@ -10,7 +10,7 @@ The baseline comes from a production setup that has run this workflow. It is a p
 - [Authorization gate](#authorization-gate)
 - [Decisions to confirm](#decisions-to-confirm)
 - [Baseline profile](#baseline-profile)
-- [What MCP can apply](#what-mcp-can-apply)
+- [What the agent can apply](#what-the-agent-can-apply)
 - [Procedure](#procedure)
 
 ## When to initialize
@@ -103,7 +103,7 @@ Every issue gets at least one `area:*` label, or `documentation` for documentati
 
 ### Issue types
 
-Use `Feature` for a new capability, `Bug` for incorrect behavior or a security vulnerability, and `Task` for everything else, such as refactoring, verification, operations, decisions, and documentation. Issue types are organization settings. Check them with `list_issue_types`. If they are missing, an organization owner has to add them. Personal repositories may not support them.
+Use `Feature` for a new capability, `Bug` for incorrect behavior or a security vulnerability, and `Task` for everything else, such as refactoring, verification, operations, decisions, and documentation. Issue types are organization settings. Check them with the `issueTypes` query in the [gh reference](gh-cli.md#canonical-operations). If they are missing, an organization owner has to add them. Personal repositories may not support them.
 
 ### Project workflows
 
@@ -111,7 +111,7 @@ Configure these in the Project's **Workflows** page:
 
 | Workflow | Baseline | Consequence for agents |
 |:--|:--|:--|
-| Auto-add to project | On, filtered to the repository's open issues and pull requests | An issue can appear on the board before `add_project_item` runs. Treat "already exists" as success |
+| Auto-add to project | On, filtered to the repository's open issues and pull requests | An issue can appear on the board before `gh project item-add` runs. Treat "already exists" as success |
 | Auto-add sub-issues to project | On | Children join the board with their parent |
 | Item added to project | On, sets Status to `Triage` | New items land in intake until someone triages them |
 | Item closed | On, sets Status to `Done` | Closing moves the card. Still verify it |
@@ -145,29 +145,30 @@ The templates never assign anyone. Assignment is decided when work starts. They 
 - The Project is linked to the repository, so the repository's **Projects** tab lists it and auto-add can target it.
 - The resulting conventions are recorded in repository guidance: the Project owner, title, and number, the vocabulary above, the language, the priority mirror, the triage authority, the merge authority, the areas reserved for human review, the commands the merge gate checks, and that the issue templates come from this skill in the chosen locale. Record names, never IDs.
 
-## What MCP can apply
+## What the agent can apply
 
 | Item | How |
 |:--|:--|
-| Missing labels | `label_write` with `method: "create"` |
-| New Project, only when requested | `projects_write` with `method: "create_project"` |
-| Views | `projects_write` with `method: "create_project_view"` |
-| Issue templates and guidance | A pull request. Use the host's normal branch-and-PR workflow when working in a checkout. Otherwise use `create_branch`, `push_files`, and `create_pull_request`. Never push to the default branch, and never merge |
-| Status options and the Priority field | Manual: Project **Settings** → field |
-| Workflows | Manual: Project **Workflows** |
-| Project ↔ repository link | Manual: repository **Projects** tab → **Link a project** |
+| Missing labels | `gh label create`, as in [the gh reference](gh-cli.md#create-a-missing-label-during-initialization) |
+| New Project, only when requested | `gh project create` |
+| Missing Priority field | `gh project field-create` with `--data-type SINGLE_SELECT` and the option names. Option colors and descriptions are set in the UI |
+| Project ↔ repository link | `gh project link` |
+| Views | `createProjectV2View` through `gh api graphql`, as in [the gh reference](gh-cli.md#add-a-project-view-during-initialization). A view's filter and grouping are set in the UI |
+| Issue templates and guidance | A pull request from a checkout: a new branch, commits through the repository's hooks, and `gh pr create`. Never push to the default branch, and never merge |
+| Status options, option colors, and descriptions | Manual: Project **Settings** → field |
+| Workflows | Manual: Project **Workflows**. Their names and whether each is on can be read back, as in [the gh reference](gh-cli.md#read-project-workflows) |
 | Issue types and issue fields | Manual, by an organization owner |
 | Repository features | Manual: repository **Settings** |
 
-Don't route a manual item through another API client. Give the user the exact UI path and wait for confirmation.
+Don't change a manual item through the API. Give the user the exact UI path and wait for confirmation.
 
 ## Procedure
 
-1. **Discover:** read labels (paginate), `.github/ISSUE_TEMPLATE/` via `get_file_contents`, repository guidance, the Project list, the selected Project's fields, options, and views, and the available issue types and fields.
+1. **Discover:** read labels (paginate), `.github/ISSUE_TEMPLATE/` on the default branch, repository guidance, the Project list, the selected Project's fields, options, views, workflows, and linked repositories, and the available issue types and fields.
 2. **Frame:** diff the current state against the baseline. Build the three-list plan and ask the open decisions.
-3. **Act:** after approval, create missing labels, create the Project and views if approved, and open the templates-and-guidance pull request.
+3. **Act:** after approval, create missing labels, create the Project, the Priority field, the Project-repository link, and views if approved, and open the templates-and-guidance pull request.
 4. **Hand off:** give the manual checklist with exact UI paths. Wait until the user confirms each step or explicitly skips it.
-5. **Verify:** re-read labels, the Project's Status options and Priority field, the views, and the pull request's files. MCP can't read workflows, so record them as confirmed by the user, not as verified.
+5. **Verify:** re-read labels, the Project's Status options and Priority field, the views, and the pull request's files. Read the workflows' names and whether each is on. Their filters and the status each sets can't be read, so record those as confirmed by the user, not as verified.
 6. **Persist:** report what changed, what the user confirmed, and what remains, such as a pending template PR. Then resume the original request from Discover.
 
 Re-running initialization on a repository that already matches the baseline changes nothing.

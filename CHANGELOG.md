@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+This release replaces the skill's only runtime dependency. GitHub access goes through the GitHub CLI instead of the GitHub MCP Server. Before upgrading, install `gh` 2.97.0 or later, sign in with `gh auth login`, and add the Project scope with `gh auth refresh -s project`. A GitHub MCP server is no longer needed.
+
+### Changed
+
+- GitHub through gh (`SKILL.md#rules`, `references/gh-cli.md`). Every GitHub read and write uses the GitHub CLI: its own commands first, and `gh api` for REST or GraphQL requests they don't cover. The MCP server added no capability the CLI lacks, cost more tokens per operation, and agents reached for `gh` anyway despite the MCP-only rule, so one session often mixed both clients. A connected GitHub MCP server isn't used for the skill's work, so every agent's commands, records, and briefs stay comparable. `references/gh-cli.md` replaces `references/github-mcp-tools.md`: setup and scopes, a command boundary, conventions, a command map, and command patterns for every operation the old reference covered.
+- The installed gh wins (`SKILL.md#rules`). Rule 2 now says to follow `gh <command> --help` on the installed version when a flag is unclear, to read JSON rather than table output, and to pass bodies with `--body-file` rather than inline through the shell.
+- Native blocked-by dependencies and milestones are written directly, with `gh issue edit --add-blocked-by` and `gh api`. They no longer need the user's authorization for a fallback, and reading CI from workflow runs when check runs can't be read needs none either.
+- Labels and assignees change with `--add-label`, `--remove-label`, and `--add-assignee @me`, which keep everything else, instead of sending the complete set. Claiming an issue no longer needs the login looked up first.
+- A pull request gets its review label as it opens, with `--label` on `gh pr create`, and merges with `gh pr merge --match-head-commit`. `--admin` and `--auto` are never used.
+- Initialization can create a missing Priority field, link the Project to the repository, and read back the Project's workflows and whether each is on (`references/initialization.md#what-the-agent-can-apply`). Status options, option colors, workflow settings, view filters, and issue types stay manual steps in the GitHub UI.
+- The project quiz reads with read-only `gh` commands (`skills/project-quiz/SKILL.md`).
+
+### Added
+
+- A command boundary (`references/gh-cli.md#command-boundary`). gh can delete repositories, change settings, rerun workflows, and bypass branch rules, so the skill lists the commands a transition may use and the ones it never runs unless the user asks for exactly that operation. The token is never printed or passed on a command line.
+
+### Removed
+
+- `references/github-mcp-tools.md`, the MCP toolset guidance, and the MCP bootstrap steps.
+
 ## [5.1.0] - 2026-11-21
 
 These changes come from measuring a repository that used 5.0.0. Over ten days, 32 of the 50 merge commits on its pull request branches had to resolve conflicts, almost all in the same few files: lists that every feature appends to, generated API files, and migration numbers. Batches never formed, because the leaves that shared the most files were the parts of one screen, each waiting for a person, and the batch rules excluded them.

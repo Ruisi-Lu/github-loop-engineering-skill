@@ -9,9 +9,9 @@
     {
       "name": "github-loop-engineering",
       "source": "./",
-      "description": "Run evidence-gated work loops on GitHub Issues and Projects through the official GitHub MCP Server.",
+      "description": "Run evidence-gated work loops on GitHub Issues and Projects through the GitHub CLI (gh).",
       "category": "productivity",
-      "tags": ["github", "project-management", "mcp", "loop-engineering"]
+      "tags": ["github", "project-management", "gh", "loop-engineering"]
     }
   ]
 }

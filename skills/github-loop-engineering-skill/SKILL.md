@@ -1,11 +1,11 @@
 ---
 name: github-loop-engineering-skill
-description: Run an evidence-gated Loop Engineering control loop for GitHub Issues and GitHub Projects through the official GitHub MCP Server, keeping every issue cold-startable for a new collaborator or a fresh agent session. Use when an agent needs to discover work state; create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; plan a parent issue's sub-issues and dependencies so agents can work in parallel, or fan out a parent's ready work to parallel agents; update project fields; maintain acceptance criteria and implementation notes; classify pull requests for human or agent review, walk a human reviewer through a pull request with multiple-choice questions, and merge clearly mergeable ones after an evidence gate; persist handoff state; initialize labels and a project board on first use; install or update issue templates; or route the next bounded task without using gh CLI or cached GraphQL IDs.
+description: Run an evidence-gated Loop Engineering control loop for GitHub Issues and GitHub Projects through the GitHub CLI (gh), keeping every issue cold-startable for a new collaborator or a fresh agent session. Use when an agent needs to discover work state; create, triage, prioritize, assign, split, block, start, finish, close, or verify work items; plan a parent issue's sub-issues and dependencies so agents can work in parallel, or fan out a parent's ready work to parallel agents; update project fields; maintain acceptance criteria and implementation notes; classify pull requests for human or agent review, walk a human reviewer through a pull request with multiple-choice questions, and merge clearly mergeable ones after an evidence gate; persist handoff state; initialize labels and a project board on first use; install or update issue templates; or route the next bounded task without cached IDs.
 ---
 
 # GitHub Loop Engineering
 
-Use GitHub Issues and Projects as the durable control plane and memory for Loop Engineering. Move each work item through one bounded, evidence-gated pass, using only the GitHub MCP tools the host exposes.
+Use GitHub Issues and Projects as the durable control plane and memory for Loop Engineering. Move each work item through one bounded, evidence-gated pass, using the GitHub CLI, `gh`, for every GitHub read and write.
 
 Four ideas carry the skill:
 
@@ -29,7 +29,7 @@ Four ideas carry the skill:
 
 | Reference | Read it |
 |:--|:--|
-| [references/github-mcp-tools.md](references/github-mcp-tools.md) | Before the first GitHub MCP operation in a session, and whenever a capability or payload is unclear |
+| [references/gh-cli.md](references/gh-cli.md) | Before the first GitHub operation in a session, and whenever a command, flag, or JSON field is unclear |
 | [references/work-item-format.md](references/work-item-format.md) | Before creating an issue or substantially rewriting an issue body. It defines the cold-start contract and check |
 | [references/pull-requests.md](references/pull-requests.md) | Before opening, classifying, reviewing, or merging a pull request |
 | [references/fan-out.md](references/fan-out.md) | Before handing leaves to parallel agents, and when you resume a fan-out after an interruption |
@@ -38,15 +38,15 @@ Four ideas carry the skill:
 
 ## Rules
 
-1. **MCP only.** Use only the connected GitHub MCP server for GitHub reads and writes. Do not fall back to `gh`, `curl`, direct REST, or handwritten GraphQL. The only exceptions are the operations under [Capability gaps](references/github-mcp-tools.md#capability-gaps), each after the user explicitly authorizes it.
-2. **The live schema wins.** Treat the connected tool schemas as authoritative. MCP hosts may namespace tool names, so match the terminal tool name and its semantics rather than assuming a prefix.
+1. **GitHub through gh.** Use the GitHub CLI for every GitHub read and write: its own commands first, and `gh api` for REST or GraphQL requests they don't cover. Don't use `curl` or any client that needs the raw token, and don't use a GitHub MCP server for this skill's work, so that every agent's commands, records, and briefs stay comparable. Stay inside the [command boundary](references/gh-cli.md#command-boundary): gh can also delete repositories, change settings, and bypass branch rules, and none of that is part of a transition unless the user asks for exactly that.
+2. **The installed gh wins.** Flags and JSON fields change between gh releases. When a command in this skill is unclear or rejected, read `gh <command> <subcommand> --help` on the installed version and follow it. Read JSON with `--json` or `--format json`, never the table output, and pass issue and pull request bodies with `--body-file`, never inline through the shell.
 3. **Discover at runtime.** Find the repository, project, fields, options, labels, issue types, and item identifiers in the current session. Never copy IDs or option values from another repository, and never cache them in this skill.
 4. **One transition at a time.** Frame one authorized state transition, with its evidence and its stop condition, and make the smallest mutation that completes it.
 5. **A write's response is a claim.** Re-read the affected resource after each write. The transition is verified only when a fresh read shows the intended state.
 6. **Persist for a cold start.** Write verified state, decisions, and remaining work to GitHub so that another agent or a human can resume without you. An issue that fails the cold-start check is not finished being written.
 7. **Verify once.** Record each check with the commit it covers, and reuse a recorded check instead of running it again, as described in [Verify once](#verify-once).
 8. **Preserve what exists.** Keep repository conventions and existing content unless the user explicitly asks to change them. Repository guidance wins over every default in this skill.
-9. **Brief delegated agents.** A delegated agent doesn't inherit this skill. Put the rules in its prompt: GitHub access through MCP only, the exact tools and inputs, which writes it may make itself, never writing content it hasn't read, and when to stop and report. Also give it the tool notes it needs, such as reading a pull request's labels with `pull_request_read`.
+9. **Brief delegated agents.** A delegated agent doesn't inherit this skill. Put the rules in its prompt: GitHub access through gh only and inside the command boundary, the exact commands and inputs, `-R owner/repo` on every command, bodies through `--body-file`, which writes it may make itself, never writing content it hasn't read, and when to stop and report.
 10. **Never merge on your own judgment.** Merge a `review:ai` pull request only when it passes the [merge gate](references/pull-requests.md#merge-gate) on its current head commit. Merge a `review:human` pull request only after a human approved its current head commit for merging and the gate's other conditions hold, as described in [Human review](references/pull-requests.md#human-review).
 11. **Public means published.** In a public repository, every issue, comment, pull request, commit, and CI log is published the moment it is written, and edit history keeps what a later edit removes. Never write secrets, internal hostnames or addresses, customer names, or personal data there. Read what a delegated agent prepared before it goes out.
 
@@ -76,17 +76,7 @@ Identify the target:
 
 Take these from an explicit URL or the repository context when possible. If several repositories or projects remain plausible and a write could land in the wrong place, ask one concise question before mutating anything. Do not guess a project merely because its title resembles the repository name.
 
-Inspect the available GitHub MCP tools and their schemas. Board management normally needs:
-
-- `issues` for issue reads, writes, comments, types, and sub-issues;
-- `projects` for project discovery, item attachment, and field updates;
-- `labels` when repository labels must be listed or created;
-- `context`, `repos`, and `pull_requests` when identity, repository guidance, or pull requests are involved;
-- `actions` when CI must be read and the token can't read check runs.
-
-The official server's default toolsets omit `projects`, `labels`, and `actions`. If a required write tool is absent, the server is read-only, or authorization is insufficient, stop before the mutation and report the missing toolset or permission. Do not bypass the boundary with another API client.
-
-If no GitHub MCP server is connected, follow [Bootstrap when the server is absent](references/github-mcp-tools.md#bootstrap-when-the-server-is-absent): connect only the official `github/github-mcp-server`, get the host's approval before downloading software, changing configuration, or starting authentication, and keep credentials in the host's secret store, never in the repository, the skill, a command transcript, or chat. Then resume from a fresh Discover pass. If the environment can't install or connect MCP servers, stop with the exact step the user must complete.
+Check the GitHub CLI as described in [Set up gh](references/gh-cli.md#set-up-gh): `gh --version` reports 2.97.0 or later, and `gh auth status` shows a login whose token reaches the repository and, for board work, has the `project` scope, or `read:project` for reads only. If gh is missing, too old, or not authenticated, or the token lacks a scope or permission the transition needs, stop before the mutation and report the exact step the user must take, such as running `gh auth refresh -s project`. Get the host's approval before downloading software, and never print or store the token. Then resume from a fresh Discover pass.
 
 Before the first write:
 
@@ -97,7 +87,7 @@ Before the first write:
 5. List issue types and custom issue fields only when the repository supports them or the request needs them.
 6. When updating existing work, read the current issue, its labels, relevant comments, hierarchy, and project item.
 
-Paginate until uniqueness is established. Prefer human-readable field and option names when the current schema resolves them by name.
+Paginate until uniqueness is established. Prefer human-readable field and option names, which gh resolves by name.
 
 **First-use gate.** If this Discover pass shows that the repository's issues, its board, or its pull request review have never been set up for this workflow, as defined in [references/initialization.md](references/initialization.md#when-to-initialize), stop the original transition. Propose initialization, and run it only after the user authorizes it. Resume the original request from a fresh Discover pass once initialization is verified or explicitly declined. If the user declines, work with the vocabulary that exists and don't invent labels or statuses.
 
@@ -225,7 +215,7 @@ Use absolute ISO dates (`YYYY-MM-DD`) for blockers, decisions, and completion no
 3. Update only the requested project fields.
 4. Verify that the issue and the board agree.
 
-When one authorized transition sets the same field value on several items, such as moving a set of accepted children to the ready option, use the batch project update if the connected schema exposes it. Then verify every item, because a batch can partially succeed.
+When one authorized transition sets the same field value on several items, such as moving a set of accepted children to the ready option, update each item in turn, paced as [Change many items](#change-many-items) describes. Then verify every item, because a run can stop partway.
 
 ### Start work
 
@@ -237,9 +227,9 @@ Nobody is assigned when an issue is created. At the start transition, the assign
 
 1. Read the current assignees.
 2. If the authenticated user is already assigned, keep the assignment.
-3. If nobody is assigned, assign the authenticated user without asking. Resolve the login with `get_me`, because MCP assignee lists don't accept `@me`. Leave the issue unassigned only when the request or repository policy says so, for example when only a human assigns work.
+3. If nobody is assigned, assign the authenticated user without asking. `gh issue edit <number> --add-assignee @me` assigns the authenticated user and leaves any other assignee in place. Leave the issue unassigned only when the request or repository policy says so, for example when only a human assigns work.
 4. If someone else is assigned, don't start, reassign, or add anyone. Report the current assignee and ask how to proceed.
-5. Send the complete intended assignee set, then re-read it. If the read-back shows another assignee, someone claimed the issue at the same time: remove only your own login and handle it as in step 4.
+5. Add your assignment, then re-read the assignees. If the read-back shows another assignee, someone claimed the issue at the same time: remove only your own login and handle it as in step 4.
 
 #### Check the issue for overbuilding
 
@@ -283,8 +273,8 @@ A hotspot is a place in a file that many changes extend at the same spot, such a
 
 #### Create the children
 
-1. Create each child as a complete, cold-startable ordinary issue that names its parent in `Pointers`. When the connected schema supports it, pass the parent on creation so that creation and attachment happen in one call.
-2. Otherwise, take the child's numeric issue ID from the create or read response and attach it with `sub_issue_write`.
+1. Create each child as a complete, cold-startable ordinary issue that names its parent in `Pointers`, and pass the parent with `gh issue create --parent`, so that creation and attachment happen in one call.
+2. For an issue that already exists, attach it with `gh issue edit <child> --parent <parent>`.
 3. Add each child to the project and initialize its fields.
 4. Add the dependencies as described in [Mark or clear a blocker](#mark-or-clear-a-blocker).
 5. Re-read the parent's sub-issues, each child's project item, and the dependencies.
@@ -322,7 +312,7 @@ After an interruption, such as a usage limit or a context reset, rebuild the sta
 
 A wait on another issue, a blocker outside the work graph, and a decision only the user can make are recorded differently.
 
-**Prerequisite issue.** Add a native blocked-by dependency from the waiting issue to its prerequisite, list the prerequisite in `Pointers`, and leave Status unchanged. The Project's `is:blocked` filter reflects the dependency, and GitHub clears it when the prerequisite closes. Use an MCP dependency write tool when the connected schema exposes one. The official server doesn't yet, so follow [Capability gaps](references/github-mcp-tools.md#capability-gaps): with the user's authorization, use its fallback. Without it, keep the prerequisite in `Pointers` and report that the native dependency relation was not changed. Never fabricate a tool or leave the task looking fully linked when it is not.
+**Prerequisite issue.** Add a native blocked-by dependency from the waiting issue to its prerequisite, list the prerequisite in `Pointers`, and leave Status unchanged. The Project's `is:blocked` filter reflects the dependency, and GitHub clears it when the prerequisite closes. Write it with `gh issue edit <waiting> --add-blocked-by <prerequisite>` and read `blockedBy` back, as in [Add a prerequisite](references/gh-cli.md#add-a-prerequisite). If the write fails, keep the prerequisite in `Pointers` and report that the native dependency relation was not changed. Never leave the task looking fully linked when it is not.
 
 **External blocker.** When marking blocked:
 
@@ -337,7 +327,7 @@ When unblocking, remove only the resolved blocker entry and the blocked label, r
 
 ### Add implementation notes and links
 
-Use `add_issue_comment` for decisions, gotchas, partial progress, validation results, and commit references. Keep comments concise and append-only.
+Use `gh issue comment` with `--body-file` for decisions, gotchas, partial progress, validation results, and commit references. Keep comments concise and append-only.
 
 For pull requests, use an auto-closing keyword such as `Closes owner/repo#N` only when the merge should close the issue. Otherwise use a non-closing issue reference. Re-read the issue or pull request after changing linkage-sensitive text.
 
@@ -371,20 +361,19 @@ Do not rely on an assumed project automation. Closing an issue and setting a pro
 Large runs, such as creating a work graph or retriaging a board, meet limits that single transitions don't:
 
 - GitHub's secondary rate limits allow about 80 content-creating requests per minute and 500 per hour for each user, counting the web UI and both APIs. Count every issue create or update, comment, label change, project field update, and dependency write. Include what earlier runs spent in the past hour, and pace the run to stay under both limits.
-- Use `update_project_items` when one field value applies to many items.
-- Split long runs into chunks. Delegate each chunk with the exact tool inputs and one write per message, and have it report what it changed and any anomaly. When a write carries content the agent must read first, such as a prepared issue body, require the read and the write in separate messages. An agent that sends both at once writes text it hasn't seen.
-- Verify with compact reads, such as `list_issues` with only the fields you compare, and with Project filters such as `no:priority`. An empty filter result proves nothing until a filter that must match returns items, so run that control first.
+- Split long runs into chunks. Delegate each chunk with the exact commands and one write per message, and have it report what it changed and any anomaly. When a write carries content the agent must read first, such as a prepared issue body, require the read and the write in separate messages. An agent that sends both at once writes text it hasn't seen.
+- Verify with compact reads, such as `gh issue list --json` with only the fields you compare, and with Project filters such as `no:priority`. An empty filter result proves nothing until a filter that must match returns items, so run that control first.
 - Audit the writes, not only the end state. Compare every write's inputs with the intended values, using the host's record of delegated tool calls when it keeps one. A wrong write that a later write corrected still leaves a revision in the issue's edit history and a cross-reference on every issue it mentioned, and a read-back of the final state shows neither. Report any such write and what it left behind.
 
 ### Initialize issues and board
 
 Run this only through the first-use gate, and only after the user authorizes it. Follow [references/initialization.md](references/initialization.md):
 
-1. Diff the repository and Project against the baseline profile. Build the plan in three lists: changes MCP will apply, UI steps for the user, and items left unchanged.
+1. Diff the repository and Project against the baseline profile. Build the plan in three lists: changes the agent will apply, UI steps for the user, and items left unchanged.
 2. Confirm the open decisions: language, Project, area labels, priority mirror, blank issues, triage authority, merge authority, and what a person must review.
-3. Create only the missing labels and views, plus the Project if the user asked for one.
+3. Create only the missing labels, views, Priority field, and Project-repository link, plus the Project if the user asked for one.
 4. Propose the chosen issue templates from [assets/issue-templates/](assets/issue-templates/), together with the recorded conventions, in a pull request. Never push to the default branch, and never merge it yourself.
-5. Hand off the manual steps. Status options, the Priority field, workflows, the Project-repository link, and issue types all need the GitHub UI.
+5. Hand off the manual steps. Status options, option colors and descriptions, workflows, view filters, and issue types need the GitHub UI.
 6. Verify every readable result, record user-confirmed items as confirmed rather than verified, and resume the original request from Discover.
 
 ### Keep issue templates current
@@ -402,5 +391,5 @@ This skill's issue templates are the source of truth for every repository that i
 - **Secondary rate limit:** stop writing, wait at least as long as the response asks, and resume from a fresh read of the items still pending.
 - **Timeout or dropped connection during a write:** the write may have applied anyway. Read before retrying: look for the issue or pull request by title or head branch, or re-read the field. Retry only what is missing, because a blind retry of a create makes a duplicate.
 - **Denied by the host's permission system:** treat the denial as a human gate. Don't retry the action through another tool or another agent. Report it and ask the user.
-- **A read returns more than the host accepts,** such as a large diff or a parent's sub-issues with full bodies: narrow it to a smaller page, only the fields you compare, a Project query with `field_names`, or the diff from a local fetch of the pull request's head.
+- **A read returns more than the host accepts,** such as a large diff or a parent's sub-issues with full bodies: narrow it with `--jq` to only the fields you compare, a Project query with `--query`, or the diff from a local fetch of the pull request's head.
 - **Concurrent edits:** re-read and merge intentionally. Never overwrite newer user content with an older snapshot.

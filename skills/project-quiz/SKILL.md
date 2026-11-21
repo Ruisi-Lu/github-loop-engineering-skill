@@ -1,6 +1,6 @@
 ---
 name: project-quiz
-description: Build a multiple-choice quiz from a repository's merged pull requests and their issues, then run it with the user, teaching after every answer, so a newcomer learns why the project works the way it does. Read-only through the official GitHub MCP Server. Use only when the user explicitly invokes this skill or asks for a project quiz.
+description: Build a multiple-choice quiz from a repository's merged pull requests and their issues, then run it with the user, teaching after every answer, so a newcomer learns why the project works the way it does. Read-only through the GitHub CLI (gh). Use only when the user explicitly invokes this skill or asks for a project quiz.
 argument-hint: "[owner/repo] [number of questions] [area, label, or date range]"
 disable-model-invocation: true
 ---
@@ -14,7 +14,7 @@ The quiz is for learning, not for grading. A wrong answer means the next explana
 ## Rules
 
 1. Start only when the user invokes this skill or explicitly asks for a project quiz. Never start one as a side effect of other work.
-2. Read GitHub only through the connected GitHub MCP server. Don't fall back to `gh`, `curl`, direct REST, or handwritten GraphQL. If no GitHub MCP server is connected, or it can't read pull requests, stop and say which toolset or permission is missing. The `pull_requests`, `issues`, and `repos` toolsets cover everything this skill reads.
+2. Read GitHub only through the GitHub CLI, `gh`, and only with commands that read: `gh pr list`, `gh pr view`, `gh issue view`, `gh search`, and `gh api` GET requests. Pass `-R owner/repo` and `--json` with the fields you need, and paginate past the default 30 items. Never run a gh command that writes. If gh is missing or not authenticated, or its token can't read the repository's pull requests and issues, stop and say which step or permission is missing.
 3. Write nothing to GitHub: no comments, labels, issues, or reviews. The quiz stays in the conversation. Save it to a local file only when the user asks, at a path they choose.
 4. Ground every question in evidence you read: a pull request, its closing issues, its review discussion, or the current code. Never invent a reason a pull request doesn't state. When the history doesn't say why, ask about what changed, not why.
 5. Leave people out. Don't ask who wrote, reviewed, or merged something, and don't judge anyone's work.
@@ -33,7 +33,7 @@ Take the scope from the invocation's arguments and the conversation. Use these d
 ## 2. Read the history
 
 1. Read the repository guidance first: the README and contributor documents such as `CONTRIBUTING.md`, `CLAUDE.md`, or `AGENTS.md`. They tell you what the project is, so you can tell which changes matter.
-2. List merged pull requests, newest first, in small pages with minimal output. A search such as `repo:owner/repo is:pr is:merged` returns only merged ones. Narrow it with the area: a label, a date range such as `merged:>=2026-01-01`, or keywords.
+2. List merged pull requests, newest first, with only the fields you need, for example `gh pr list -R owner/repo --state merged --json number,title,mergedAt,labels --limit 100`. Narrow it with `--search` and the area: a label, a date range such as `merged:>=2026-01-01`, or keywords.
 3. Skip pull requests that teach nothing about the project: dependency and version bumps, release chores, formatting, typo fixes, and generated-file updates, unless the scope asks for them.
 4. Pick the pull requests that teach the most, and cover several areas rather than one:
    - a design or architecture decision, especially one whose discussion weighs alternatives;

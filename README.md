@@ -2,7 +2,7 @@
 
 > The GitHub-native control plane for Loop Engineering.
 
-An Agent Skill that turns GitHub Issues and GitHub Projects into durable state, evidence, and handoff for repeatable agent work—all through the official [GitHub MCP Server](https://github.com/github/github-mcp-server).
+An Agent Skill that turns GitHub Issues and GitHub Projects into durable state, evidence, and handoff for repeatable agent work—all through the [GitHub CLI](https://cli.github.com/), `gh`.
 
 Loop Engineering is about designing the repeatable system around an agent: what it discovers, which bounded transition it attempts, how the result is verified, what gets persisted, and when the loop continues or stops. This skill applies that discipline to the work lifecycle.
 
@@ -27,7 +27,7 @@ GitHub is more than the task list in this loop:
 |:--|:--|:--|
 | Discover | Read live repository, issue, hierarchy, Project fields, and policy | Current world state |
 | Frame | Define one authorized transition and the evidence that would prove it | Acceptance criteria and target state |
-| Act | Make the smallest MCP mutation in dependency order | Issue or Project change |
+| Act | Make the smallest `gh` mutation in dependency order | Issue or Project change |
 | Verify | Re-read the affected resources instead of trusting the write response | Observed state and validation evidence |
 | Persist | Record decisions, blockers, validation, and completion | Body, comments, fields, and links |
 | Continue or stop | Route a bounded next step or stop at completion, ambiguity, or a human gate | Follow-up, handoff, or verified done state |
@@ -47,7 +47,7 @@ The result is an evidence-gated lifecycle: an agent cannot turn “I changed it�
 - **Checked against the issue:** before a pull request opens, a fresh agent on a smaller, faster model than the one that wrote the change reads the diff against each acceptance criterion and reports what is met, missed, unclear, or beyond the issue's scope. It gets the issue and the diff, not the implementing agent's reasoning, so a misread criterion doesn't pass just because the implementer believes it does. It takes minutes, so every change gets it, not only risky ones.
 - **Verify once:** every check, pre-commit review, acceptance check, security review, and piece of acceptance evidence is recorded on the pull request with the commit it covers. Whoever comes next, such as a coordinator, a merging agent, or a colleague's agent in another session, reads that record, checks it against GitHub and git, and does only what it doesn't cover. Nobody runs the same audit on the same code twice.
 - **Agents merge, people decide little:** every pull request is labeled `review:ai` or `review:human`. Pull requests get no code review: code is reviewed locally, under the team's AI controls, before the pull request opens, and reviewing a pull request checks only that its content meets what the skill requires. An agent merges a `review:ai` pull request after a merge gate: green CI, a local review on record for every commit, one local security review on record for a high-risk change, evidence and an acceptance check on record for every acceptance criterion, passing checks on the head commit, and no merge conflicts. A missing local review or acceptance check sends the pull request back to its author instead of being made up for at the pull request. Commands that CI ran on the head commit are not run again. A person's part is to understand the feature, not to judge technical choices. A person confirms every change to what a user sees, because how an interface looks and feels is a matter of taste, along with a pull request that sets up the skill, a change the repository reserves for a person, and a pull request from a fork. Nothing else goes to human review. A change to the repository's agent guidance, CI, or pre-commit gate merges after the merge gate, and one that loosens a rule goes to the user as one question about what protection goes away. An open decision goes to the user as one question instead of a whole review, and a failed check gets fixed instead of escalated. For an interface change, the agent runs the pull request and opens each affected screen for the reviewer before asking them to confirm it, because screenshots don't show how an interface feels. For the pull requests that do need a person, the agent teaches the reviewer the key points in plain language and asks a multiple-choice question about each, and checks that the reviewer understood what the feature does for a user, never asking them to judge how it is built. A pull request that is behind the base branch but doesn't conflict merges without catching up, so parallel work never chases the base, and the base branch's CI on each merge commit catches two changes that break only together. Ready pull requests merge in line: only the one at the front brings in the base, once, and only when it conflicts, while the others wait for their turn instead of catching up after every merge. A merge commit holds only the merge and its conflict resolutions. Generated files are regenerated rather than merged by hand, and the files that recent merges had to resolve, found with `git show --remerge-diff`, are proposed for restructuring as soon as they keep conflicting. Every verification record names the skill version, so a team can compare its work before and after an update.
-- **MCP-first:** no `gh` CLI, `curl`, direct REST calls, or handwritten GraphQL, except user-authorized fallbacks for the two writes the official server lacks, native issue dependencies and milestones, and for reading check runs when the token can't.
+- **gh-native:** every GitHub read and write goes through the GitHub CLI, its own commands first and `gh api` for the rest, inside a written command boundary that keeps destructive and settings commands out of every transition. Bodies go through `--body-file`, never through the shell, and reads use JSON, never table output.
 - **Host-portable:** the skills are standard Agent Skills content. The only host-specific metadata is `disable-model-invocation` on the project quiz, which keeps Claude Code from starting it on its own; its description asks other hosts to do the same. The Claude Code plugin is an optional wrapper that installs the same files unchanged.
 - **Repository-agnostic:** no hard-coded owner, project number, field ID, or option ID. Existing repository vocabulary always wins. A baseline vocabulary applies only when the user authorizes first-use initialization.
 - **Recoverable:** partial failures trigger a fresh read and bounded recovery, never blind replay.
@@ -69,14 +69,14 @@ The result is an evidence-gated lifecycle: an agent cannot turn “I changed it�
 - completion, follow-up routing, and human handoff;
 - a project quiz, started only on request, that teaches a newcomer the project from its merged pull requests.
 
-This is the lifecycle control and memory layer, not a coding-agent runtime. When a host can run agents in parallel, the skill decides which issues are ready, tells the host what to hand to each agent, and verifies every result on GitHub; the host launches the agents and their workspaces. The skill runs code only at the merge gate, for the checks that CI didn't run on the head commit, and it merges `review:ai` pull requests that pass the merge gate, and `review:human` pull requests only after a human approves them. It bypasses a missing MCP capability only through the user-authorized fallbacks in the MCP reference. Initialization and template updates go through pull requests that a human merges. Board fields, workflows, and issue types need the GitHub UI, so the agent hands those steps to the user.
+This is the lifecycle control and memory layer, not a coding-agent runtime. When a host can run agents in parallel, the skill decides which issues are ready, tells the host what to hand to each agent, and verifies every result on GitHub; the host launches the agents and their workspaces. The skill runs code only at the merge gate, for the checks that CI didn't run on the head commit, and it merges `review:ai` pull requests that pass the merge gate, and `review:human` pull requests only after a human approves them. Initialization and template updates go through pull requests that a human merges. Status options, workflows, view filters, and issue types need the GitHub UI, so the agent hands those steps to the user.
 
 ## Contents
 
 | Path | Purpose |
 |:--|:--|
 | `skills/github-loop-engineering-skill/SKILL.md` | Rules, the loop, the verify-once rule, work-item rules, and every operation |
-| `skills/github-loop-engineering-skill/references/github-mcp-tools.md` | Official GitHub MCP tool map and payload patterns |
+| `skills/github-loop-engineering-skill/references/gh-cli.md` | GitHub CLI setup, command boundary, conventions, command map, and command patterns |
 | `skills/github-loop-engineering-skill/references/work-item-format.md` | Cold-start contract and check, plus issue, blocker, note, and completion formats |
 | `skills/github-loop-engineering-skill/references/initialization.md` | First-use detection, authorization gate, and baseline for labels, board, automations, and templates |
 | `skills/github-loop-engineering-skill/references/issue-templates.md` | How the skill installs issue templates and keeps them current |
@@ -89,61 +89,20 @@ This is the lifecycle control and memory layer, not a coding-agent runtime. When
 | `scripts/` | Bun and TypeScript repository checks (development only) |
 | `CHANGELOG.md` | Release history |
 
-## Bootstrap the GitHub MCP dependency
+## Set up the GitHub CLI
 
-This skill has one runtime dependency: the official [github/github-mcp-server](https://github.com/github/github-mcp-server).
+This skill has one runtime dependency: the [GitHub CLI](https://cli.github.com/), `gh`, version 2.97.0 or later. Earlier versions lack the flags the skill uses for issue types, sub-issues, blocked-by dependencies, Project queries, and name-based Project field updates.
 
-If it is not connected, ask the agent to bootstrap it:
+1. Install `gh` from its official distribution, through the tool manager your team prescribes, and check `gh --version`.
+2. Sign in with `gh auth login`. In Claude Code, type `! gh auth login` so the interactive login runs in the session.
+3. Add the Project scope for board work: `gh auth refresh -s project`. Reading a board needs only `read:project`.
+4. Check `gh auth status`: it names the account and the token's scopes.
 
-```text
-Install or connect the official github/github-mcp-server for this MCP host.
-Use the host's supported installation method, keep credentials out of files
-and chat, enable the toolsets required by the GitHub Loop Engineering skill, reload
-the tools, verify the connection, and then resume the original request.
-```
+A headless environment can set `GH_TOKEN` instead. A fine-grained personal access token needs the target repositories' Issues, Pull requests, Contents, and Actions permissions, and Projects permission on the owning organization. Some fine-grained tokens can't read check runs, and the merge gate then reads CI from workflow runs and jobs.
 
-The agent should perform the setup itself when the host exposes an approved installer, connector manager, or shell workflow. Installation is host-specific: prefer the official remote server when supported; otherwise use the official container or binary instructions. Do not assume that cloning the source repository configures an MCP host.
+Keep the token in gh's own credential store or the environment, never in the repository, the skill, a command line, or chat. The skill never prints it.
 
-Before downloading software, changing user/global host configuration, or starting an authentication flow, the agent must obtain any approval required by the host. Store OAuth or PAT credentials through the host's secret/input mechanism or environment—not in the repository, skill, command transcript, or chat.
-
-Enable at least the `issues` and `projects` toolsets. `context`, `repos`, `labels`, and `pull_requests` are recommended for the full loop:
-
-```text
-context,repos,issues,labels,projects,pull_requests
-```
-
-The server's default toolsets (`context`, `issues`, `pull_requests`, `repos`, `users`) omit `projects` and `labels`, so you must enable them explicitly for board operations. Add `actions` when your token can't read check runs, as has been seen with fine-grained personal access tokens: the merge gate then reads CI from workflow runs and jobs. The remote server takes toolsets from the `X-MCP-Toolsets` header. The local server reads the `--toolsets` flag or the `GITHUB_TOOLSETS` variable. Project writes also require project-write authorization. Follow the official server's [configuration guide](https://github.com/github/github-mcp-server/blob/main/docs/server-configuration.md) for the detected MCP host.
-
-After setup, verify that identity, issue reads, Project reads, and the requested write tools are actually available. Only then resume the skill at Discover.
-
-### Claude Code example
-
-The plugin doesn't bundle an MCP server. That keeps credentials out of the plugin and avoids a second GitHub server when one is already connected. To connect the official remote server for your user, export a GitHub token in your shell first. The shell expands it once, and Claude Code stores the result in your user configuration, not in any repository:
-
-```bash
-claude mcp add --transport http --scope user github https://api.githubcopilot.com/mcp/ \
-  --header "Authorization: Bearer $GITHUB_PAT" \
-  --header "X-MCP-Toolsets: context,repos,issues,labels,projects,pull_requests"
-```
-
-To share the setup with a team, commit a project `.mcp.json` in the target repository. Claude Code expands `${GITHUB_PAT}` from each member's environment when it loads the file, so the committed file holds no secret:
-
-```json
-{
-  "mcpServers": {
-    "github": {
-      "type": "http",
-      "url": "https://api.githubcopilot.com/mcp/",
-      "headers": {
-        "Authorization": "Bearer ${GITHUB_PAT}",
-        "X-MCP-Toolsets": "context,repos,issues,labels,projects,pull_requests"
-      }
-    }
-  }
-}
-```
-
-Run `/mcp` to confirm the connection, and approve the project server when Claude Code prompts.
+No GitHub MCP server is needed. The skill uses `gh` for every GitHub read and write, even when a GitHub MCP server is connected, so that every agent's commands, records, and briefs stay the same.
 
 ## Install
 
@@ -284,19 +243,19 @@ Learn a project from its pull request history:
 /github-loop-engineering:project-quiz owner/repo 10 merged since 2026-01-01
 ```
 
-The quiz reads the merged pull requests, their issues, and their review discussions through the GitHub MCP Server, asks one question at a time, and explains each answer with a link to its source. It writes nothing to GitHub.
+The quiz reads the merged pull requests, their issues, and their review discussions with read-only `gh` commands, asks one question at a time, and explains each answer with a link to its source. It writes nothing to GitHub.
 
 The skill follows repository instructions and existing project vocabulary. Ambiguous targets, insufficient evidence, missing capabilities, and new authority requirements stop the loop before an unsafe transition.
 
 ## Design boundaries
 
-The skill targets the official GitHub MCP Server's documented tool surface. It never silently switches to a CLI or direct API: it uses the GitHub CLI's API client only for native issue dependencies and milestones, which the server can't write yet, and for check runs that the token can't read through the server, and only after the user authorizes it. Arbitrary project configuration remains conditional on the tools exposed by the connected server.
+The skill targets the GitHub CLI. It uses `gh`'s own commands where they exist and `gh api` only for the reads and the few writes its reference lists, such as creating a Project view. It never uses a raw token or another HTTP client. Project configuration that the API can't change safely, such as Status options and workflows, stays a manual step in the GitHub UI.
 
 Each agent completes one lifecycle operation or bounded recovery at a time. Fanning out a parent issue coordinates many such loops: the skill decides what is ready and verifies the results, while the host provides the agents and their isolated worktrees. Writing code, deployment, and unattended repetition belong to the surrounding Loop Engineering harness.
 
 Agents merge `review:ai` pull requests only after the merge gate passes on the exact head commit, and `review:human` pull requests only after a human approves that head commit. The skill doesn't count on branch protection or required checks, because private repositories on GitHub Free have neither. The gate is the only enforcement. The merging agent settles every condition, from the pull request's verification record where one covers it and by its own check where none does, except code review: a missing local review goes back to the author's side.
 
-The Claude Code plugin packages only the two skills. It adds no hooks, agents, commands, or MCP servers, so installing it grants no new tool access.
+The Claude Code plugin packages only the two skills. It adds no hooks, agents, commands, or MCP servers, so installing it grants no new tool access. The skill runs `gh` through the host's shell tool, under the host's permission rules.
 
 ## Development
 

@@ -42,7 +42,7 @@ Write one brief for the whole run, in a file every agent reads, and point each a
 
 - the repository guidance to read first, and that the issue body is the specification;
 - the [write split](#who-writes-what), including the issue sections it may change;
-- GitHub access through MCP only, with the tool notes it needs. For example, `issue_read` can't resolve a pull request number, so a pull request's labels come from `pull_request_read`;
+- GitHub access through gh only, inside the [command boundary](gh-cli.md#command-boundary), with `-R owner/repo` on every command and every body passed with `--body-file`;
 - commit conventions, signing, and the pre-commit review gate, which it never bypasses, not even for a work-in-progress commit;
 - running the repository's checks on its final head commit in a clean checkout, such as a new git worktree of that commit with no uncommitted or untracked files, and reporting each command with its result, because that run is the one the pull request records;
 - bringing in the base branch only when you ask for it, because its pull request conflicts with the base at its turn to merge, and then with a merge rather than a rebase, because a rebase rewrites commits without running the pre-commit hook. A pull request that is only behind the base doesn't catch up. A merge commit holds only the merge and its conflict resolutions, a generated file is regenerated rather than merged by hand, and the agent never merges another leaf's branch into its own;
