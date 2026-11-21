@@ -4,6 +4,18 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+This change comes from a batch pull request that merged two days after it opened. Its CI was green 22 minutes after it opened, but its acceptance check had found the end-to-end evidence missing, and the end-to-end runs, the browser runs, the criterion-by-criterion evidence, and a migration's review all happened after the pull request was open. It couldn't pass the merge gate until the last of them was recorded.
+
+### Changed
+
+- Verify, then open (`SKILL.md#pull-requests`, `references/pull-requests.md#open`). A pull request opens only once it could merge as soon as CI is green. Before the first push, every acceptance criterion is proven, including the end-to-end, browser, hardware, and environment runs it needs against the head that will be pushed, and only then does the acceptance check run. A pull request, or a draft, is never opened to park the work while verification continues. The one exception is a criterion whose proof is a CI job that runs only on pull requests. An acceptance check that finds the code fits but the evidence missing means the work isn't ready to open. The pull request body no longer offers "not met" for a criterion.
+- Fan-out leaves go out only with every criterion proven (`references/fan-out.md`). The brief tells each leaf agent to prove every criterion before it reports done, the coordinator sends a leaf with an unproven criterion back instead of opening its pull request, and a batch runs the evidence that depends on its leaves together on the batch's head before the push.
+- Leaf criteria must be provable before the merge (`SKILL.md#plan-a-work-graph`, `references/work-item-format.md#cold-start-check`). A proof that needs the merged result, such as a deployment of the base branch or a test on site, belongs to a later child that depends on the leaf.
+
+### Added
+
+- Plan the verification (`SKILL.md#plan-the-verification`). Right after the overbuilding check, and before writing code, the agent decides what will prove each acceptance criterion and where it runs, and lines up what the proof needs. A criterion that only something after the merge can prove goes to the user at once, as a pending decision: prove it before the merge some other way, or move it into its own issue blocked by this one. In a fan-out, the coordinator plans each leaf's verification before handing it out.
+
 ## [6.0.0] - 2026-11-21
 
 This release replaces the skill's only runtime dependency. GitHub access goes through the GitHub CLI instead of the GitHub MCP Server. Before upgrading, install `gh` 2.97.0 or later, sign in with `gh auth login`, and add the Project scope with `gh auth refresh -s project`. A GitHub MCP server is no longer needed.

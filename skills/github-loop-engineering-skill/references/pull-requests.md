@@ -56,7 +56,7 @@ The exceptions in [Verify once](../SKILL.md#verify-once) apply: don't reuse an e
 
 ## Acceptance check
 
-The pre-commit review gate judges each commit's code, and the implementing agent's tests prove what that agent thought to test. Neither asks whether the change as a whole does what its issues ask, so an agent can report every criterion met while one is missed or misread. Before the first push, one quick check by another agent asks that.
+The pre-commit review gate judges each commit's code, and the implementing agent's tests prove what that agent thought to test. Neither asks whether the change as a whole does what its issues ask, so an agent can report every criterion met while one is missed or misread. Once every criterion has its evidence, and before the first push, one quick check by another agent asks that.
 
 - **Who runs it.** A fresh agent that didn't write the change, on a smaller and faster model than the implementing agent's, at low effort. It still judges code, so it is not a model meant only for retrieval. Repository and host guidance on model choice win. When the host can't run another agent, run the check yourself in a separate pass from a fresh read of the issue, and say so in the record.
 - **What it gets.** The closing issues, the diff at the head commit, and the acceptance evidence the author's side claims, but not the implementing agent's reasoning or summary, which would lead it to the same conclusion.
@@ -69,9 +69,13 @@ Write the result into the verification record's acceptance check entry: the comm
 
 ## Open
 
+Verification comes before the PR, never after it. A PR opens only once it could merge as soon as CI is green. One that opens before its evidence passes CI and then fails condition 5 of the [merge gate](#merge-gate). While it waits, each commit or record update that adds evidence can rerun CI, the base moves on, and the PR meets conflicts it wouldn't have met.
+
 Before the first push:
 
-- Run the [acceptance check](#acceptance-check) and fix what it finds.
+- Prove every acceptance criterion and record the evidence, as planned when the work started in [Plan the verification](../SKILL.md#plan-the-verification). This includes the end-to-end, browser, hardware, and environment runs a criterion needs, run against the head that will be pushed. Don't open a PR, or a draft, to park the work while verification continues, and don't open one to see whether the change works. The one exception is a criterion whose proof is a CI job that runs only on a pull request: prove everything else first, and say in the body which criterion that job proves.
+- When a criterion turns out to need something only the merge provides, don't open the PR with it unproven. Ask the user, as a [pending decision](../SKILL.md#mark-or-clear-a-blocker), whether to prove it before the merge some other way or to move it into its own issue, and open once every criterion that remains has evidence.
+- Run the [acceptance check](#acceptance-check) on the head and its evidence, and fix what it finds. A result of "the code fits, the evidence is missing" means the work isn't ready to open: collect the evidence first.
 - Run the repository's checks where they are cheap, locally or on a build machine. CI is the merge gate, not a debugger: every push reruns it, and on a private repository every run spends metered minutes.
 - If the repository uses a secret scanner, scan both the branch's commits and the head's tree. The tree must be clean on its own, because a squash merge puts the same content in a new commit that an allowlist entry for the old commit doesn't cover.
 - In a public repository, read the commits, the body, and any evidence files for secrets, internal hostnames or addresses, customer names, and personal data. What is pushed stays readable after it is deleted.
@@ -103,7 +107,7 @@ Covers commit <head SHA>. Written by <person, or agent and model> with github-lo
 - Acceptance check: <agent and model> on <sha>; every criterion met, or <criterion> not met, fixed in <sha>
 - Security review: <who ran it>, scope <areas and claims>; no findings, or <finding> fixed in <sha>, checked by <test>
 - Acceptance criteria:
-  - <criterion>: <evidence, or the issue comment or report that holds it>, or "not met" and why
+  - <criterion>: <evidence, or the issue comment or report that holds it>
 
 ## Review lane
 
