@@ -4,6 +4,20 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+These changes come from measuring a repository that used 5.0.0. Over ten days, 32 of the 50 merge commits on its pull request branches had to resolve conflicts, almost all in the same few files: lists that every feature appends to, generated API files, and migration numbers. Batches never formed, because the leaves that shared the most files were the parts of one screen, each waiting for a person, and the batch rules excluded them.
+
+### Added
+
+- Merge in line (`references/pull-requests.md#merge`). Ready pull requests merge one at a time in a line, with the pull requests of one feature next to each other. Only the one at the front brings in the base, and only when it conflicts, so it resolves its conflicts once, against every merge before it, with one CI run. Nothing further back catches up after a merge, not even a sibling of the pull request that just merged. The line is ordered by dependency first, then by how widely shared the files are, and nothing else merges while the front pull request resolves its conflicts, runs CI, or holds its review. A `review:human` pull request whose reviewer isn't ready lets the others go first, and at its turn resolves its conflicts before the review, so the approval covers the head that merges and the reviewer isn't asked twice. A sequence number that collides with the base, which git doesn't report as a conflict, is treated like one and taken again in an ordinary commit.
+- Hotspots from conflict history (`SKILL.md#shared-hotspots`). The files that recent merges actually resolved, read from the `remerge CONFLICT` lines of `LC_ALL=C git show --remerge-diff`, are the best evidence of a hotspot. Generated files and sequence numbers, such as the next migration, count as hotspots. A conflict in a generated file is resolved by running its generator, and a sequence number is taken at the leaf's turn to merge. A hotspot that conflicted in several pull requests within a few days is proposed to the user for restructuring right away, with the counts, and becomes its own issue at the priority of the work it slows once accepted.
+- The verification record names the skill version (`references/pull-requests.md#open`), taken from the installing plugin's `.claude-plugin/plugin.json`, so a team can tell which rules each pull request followed.
+
+### Changed
+
+- A batch can hold one feature for one human review (`references/fan-out.md#batch-leaves-into-one-pull-request`): the `review:human` leaves of the same parent that change the same screen or flow. The batch gets one review interview and one approval, instead of one per part and another each time a sibling's merge changes a head. A batch holds either only `review:ai` leaves or only such `review:human` leaves. A high-risk leaf can join a batch too: its security review goes into its own part of the record, scoped to its commits, merge gate condition 4 checks each high-risk leaf on its own, and its merge commit lets it be reverted alone. Before, a batch held only `review:ai` leaves without a security review.
+- A merge commit holds only the merge and its conflict resolutions (`references/pull-requests.md#open`). Other changes, such as updates to a test report, go in an ordinary commit after it, and evidence isn't updated just because the base moved.
+- No stacked branches (`SKILL.md#plan-a-work-graph`). A change that needs another open pull request's change waits for it to merge, or starts from its head and brings in the base once after it merged. It never merges the other branch again and again while both are open.
+
 ## [5.0.0] - 2026-11-18
 
 This release changes which pull requests wait for a person. A change to a repository's agent guidance, CI, or pre-commit gate no longer goes to human review: an agent merges it after the merge gate, and asks the user one question when it loosens a rule. Repositories that want a person to review those changes should reserve them in their guidance before upgrading.
