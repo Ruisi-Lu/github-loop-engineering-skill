@@ -4,6 +4,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-11-21
+
 This release replaces the skill's only runtime dependency. GitHub access goes through the GitHub CLI instead of the GitHub MCP Server. Before upgrading, install `gh` 2.97.0 or later, sign in with `gh auth login`, and add the Project scope with `gh auth refresh -s project`. A GitHub MCP server is no longer needed.
 
 ### Changed
@@ -268,7 +270,8 @@ First versioned release. Earlier commits were unversioned.
 - The docs state the official server's default toolsets exactly. They omit `projects` and `labels`.
 - The README covers Claude Code plugin installation and how each host invokes the skill.
 
-[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v5.1.0...HEAD
+[Unreleased]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v6.0.0...HEAD
+[6.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v5.1.0...github-loop-engineering--v6.0.0
 [5.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v5.0.0...github-loop-engineering--v5.1.0
 [5.0.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.1.0...github-loop-engineering--v5.0.0
 [4.1.0]: https://github.com/Ruisi-Lu/github-loop-engineering-skill/compare/github-loop-engineering--v4.0.0...github-loop-engineering--v4.1.0
