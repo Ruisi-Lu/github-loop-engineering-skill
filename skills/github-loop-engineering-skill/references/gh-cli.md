@@ -329,6 +329,13 @@ gh pr edit 128 -R octo-org/widgets --add-label review:human --remove-label revie
 
 Request reviewers with `--reviewer` on `gh pr create` or `--add-reviewer` on `gh pr edit`.
 
+To send a pull request back to the author's side because its record has a gap, return it to draft, and mark it ready once the record is complete. Read `isDraft` back after each:
+
+```sh
+gh pr ready 128 -R octo-org/widgets --undo
+gh pr ready 128 -R octo-org/widgets
+```
+
 ### Read CI results
 
 ```sh

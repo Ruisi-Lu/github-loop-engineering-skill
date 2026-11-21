@@ -4,6 +4,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ## [Unreleased]
 
+### Changed
+
+- A pull request opens complete and is never where verification is finished (`references/pull-requests.md#verification-record`). Once it opens, a reviewer or a merging agent may start on it at any moment, so every entry the merge gate needs is in its body when it opens. Afterwards a comment adds only what happens at the pull request by design: CI results, the gate's result, a human's approval or review interview, and the record for a conflict resolution at its turn to merge or a change a reviewer asked for, written before the merge or the review is asked for again.
+- The merge gate and the review interview only read (`references/pull-requests.md#merge-gate`). They no longer run checks the record doesn't cover, check a criterion again on the head, or collect evidence. A missing review, check, or piece of evidence, a red CI run, or anything else the author has to fix returns the pull request to draft with `gh pr ready --undo`, names the gap in a comment and in each closing issue's `State`, and leaves it to the author's side, which completes it locally, records it in the body, and marks the pull request ready again. For a pull request from a fork, a person with write access runs the remaining commands and records them before the gate. Review feedback is answered with new commits whose reviews, checks, and evidence are recorded before the reviewer is asked to look again.
+
 ## [6.1.0] - 2026-11-22
 
 This change comes from a batch pull request that merged two days after it opened. Its CI was green 22 minutes after it opened, but its acceptance check had found the end-to-end evidence missing, and the end-to-end runs, the browser runs, the criterion-by-criterion evidence, and a migration's review all happened after the pull request was open. It couldn't pass the merge gate until the last of them was recorded.
